@@ -280,13 +280,13 @@ TOOL_CATEGORIES = {
         "icon": "🌐",
         "providers": [
             {
-                "name": "Nous Subscription (Browserbase cloud)",
-                "tag": "Managed Browserbase billed to your subscription",
+                "name": "Nous Subscription (Browser Use cloud)",
+                "tag": "Managed Browser Use billed to your subscription",
                 "env_vars": [],
-                "browser_provider": "browserbase",
+                "browser_provider": "browser-use",
                 "requires_nous_auth": True,
                 "managed_nous_feature": "browser",
-                "override_env_vars": ["BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID"],
+                "override_env_vars": ["BROWSER_USE_API_KEY"],
                 "post_setup": "browserbase",
             },
             {

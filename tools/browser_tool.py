@@ -3,10 +3,10 @@
 Browser Tool Module
 
 This module provides browser automation tools using agent-browser CLI.  It
-supports two backends — **Browserbase** (cloud) and **local Chromium** — with
-identical agent-facing behaviour.  The backend is auto-detected: if
-``BROWSERBASE_API_KEY`` is set the cloud service is used; otherwise a local
-headless Chromium instance is launched automatically.
+supports multiple backends — **Browser Use** (cloud, default for Nous
+subscribers), **Browserbase** (cloud, direct credentials), and **local
+Chromium** — with identical agent-facing behaviour.  The backend is
+auto-detected from config and available credentials.
 
 The tool uses agent-browser's accessibility tree (ariaSnapshot) for text-based
 page representation, making it ideal for LLM agents without vision capabilities.
@@ -278,21 +278,17 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
         logger.debug("Could not read cloud_provider from config: %s", e)
 
     if _cached_cloud_provider is None:
-        fallback_provider = BrowserbaseProvider()
+        # Prefer Browser Use (managed Nous gateway or direct API key),
+        # fall back to Browserbase (direct credentials only).
+        fallback_provider = BrowserUseProvider()
         if fallback_provider.is_configured():
             _cached_cloud_provider = fallback_provider
+        else:
+            fallback_provider = BrowserbaseProvider()
+            if fallback_provider.is_configured():
+                _cached_cloud_provider = fallback_provider
 
     return _cached_cloud_provider
-
-
-def _get_browserbase_config_or_none() -> Optional[Dict[str, Any]]:
-    """Return Browserbase direct or managed config, or None when unavailable."""
-    return BrowserbaseProvider()._get_config_or_none()
-
-
-def _get_browserbase_config() -> Dict[str, Any]:
-    """Return Browserbase config or raise when neither direct nor managed mode is available."""
-    return BrowserbaseProvider()._get_config()
 
 
 def _is_local_mode() -> bool:

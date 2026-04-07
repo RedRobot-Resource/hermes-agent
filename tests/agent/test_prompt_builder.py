@@ -422,7 +422,7 @@ class TestBuildNousSubscriptionPrompt:
                     "web": NousFeatureState("web", "Web tools", True, True, True, True, False, True, "firecrawl"),
                     "image_gen": NousFeatureState("image_gen", "Image generation", True, True, True, True, False, True, "Nous Subscription"),
                     "tts": NousFeatureState("tts", "OpenAI TTS", True, True, True, True, False, True, "OpenAI TTS"),
-                    "browser": NousFeatureState("browser", "Browser automation", True, True, True, True, False, True, "Browserbase"),
+                    "browser": NousFeatureState("browser", "Browser automation", True, True, True, True, False, True, "Browser Use"),
                     "modal": NousFeatureState("modal", "Modal execution", False, True, False, False, False, True, "local"),
                 },
             ),
@@ -430,7 +430,7 @@ class TestBuildNousSubscriptionPrompt:
 
         prompt = build_nous_subscription_prompt({"web_search", "browser_navigate"})
 
-        assert "Browserbase" in prompt
+        assert "Browser Use" in prompt
         assert "Modal execution is optional" in prompt
         assert "do not ask the user for Firecrawl, FAL, OpenAI TTS, or Browserbase API keys" in prompt
 

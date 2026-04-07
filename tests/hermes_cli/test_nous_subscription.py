@@ -44,7 +44,7 @@ def test_get_nous_subscription_features_prefers_managed_modal_in_auto_mode(monke
     assert features.modal.direct_override is False
 
 
-def test_get_nous_subscription_features_prefers_camofox_over_managed_browserbase(monkeypatch):
+def test_get_nous_subscription_features_prefers_camofox_over_managed_browser_use(monkeypatch):
     env = {"CAMOFOX_URL": "http://localhost:9377"}
 
     monkeypatch.setattr(ns, "get_env_value", lambda name: env.get(name, ""))
@@ -57,11 +57,11 @@ def test_get_nous_subscription_features_prefers_camofox_over_managed_browserbase
     monkeypatch.setattr(
         ns,
         "is_managed_tool_gateway_ready",
-        lambda vendor: vendor == "browserbase",
+        lambda vendor: vendor == "browser-use",
     )
 
     features = ns.get_nous_subscription_features(
-        {"browser": {"cloud_provider": "browserbase"}}
+        {"browser": {"cloud_provider": "browser-use"}}
     )
 
     assert features.browser.available is True
