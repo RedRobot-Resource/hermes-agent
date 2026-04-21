@@ -41,6 +41,7 @@ import threading
 import atexit
 import shutil
 import subprocess
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
@@ -116,20 +117,42 @@ _cached_sudo_password: str = ""
 # so prompts route through prompt_toolkit's event loop.
 #   _sudo_password_callback() -> str  (return password or "" to skip)
 #   _approval_callback(command, description) -> str  ("once"/"session"/"always"/"deny")
-_sudo_password_callback = None
-_approval_callback = None
+#
+# These callbacks are stored in ``ContextVar`` so that concurrent sessions
+# hosted in a single process (e.g. multiple ACP sessions in one Hermes ACP
+# adapter) each see their own callback.  A module-global would let one
+# session's callback overwrite another's while both are still running, routing
+# dangerous-command approval prompts to the wrong editor/session context.
+# ``asyncio`` tasks — and threads launched via ``loop.run_in_executor`` —
+# each receive a copy of the caller's context, so per-task isolation is
+# automatic.  CLI callers that set the callback once at startup still work
+# unchanged: a single context holds the single callback.
+_sudo_password_callback_var: ContextVar = ContextVar(
+    "_sudo_password_callback", default=None
+)
+_approval_callback_var: ContextVar = ContextVar(
+    "_approval_callback", default=None
+)
 
 
 def set_sudo_password_callback(cb):
     """Register a callback for sudo password prompts (used by CLI)."""
-    global _sudo_password_callback
-    _sudo_password_callback = cb
+    _sudo_password_callback_var.set(cb)
 
 
 def set_approval_callback(cb):
     """Register a callback for dangerous command approval prompts (used by CLI)."""
-    global _approval_callback
-    _approval_callback = cb
+    _approval_callback_var.set(cb)
+
+
+def _get_sudo_password_callback():
+    """Return the sudo password callback for the current context."""
+    return _sudo_password_callback_var.get()
+
+
+def _get_approval_callback():
+    """Return the approval callback for the current context."""
+    return _approval_callback_var.get()
 
 # =============================================================================
 # Dangerous Command Approval System
@@ -144,7 +167,7 @@ from tools.approval import (
 def _check_all_guards(command: str, env_type: str) -> dict:
     """Delegate to consolidated guard (tirith + dangerous cmd) with CLI callback."""
     return _check_all_guards_impl(command, env_type,
-                                  approval_callback=_approval_callback)
+                                  approval_callback=_approval_callback_var.get())
 
 
 # Allowlist: characters that can legitimately appear in directory paths.
@@ -219,9 +242,10 @@ def _prompt_for_sudo_password(timeout_seconds: int = 45) -> str:
     import sys
     
     # Use the registered callback when available (prompt_toolkit-compatible)
-    if _sudo_password_callback is not None:
+    _cb = _sudo_password_callback_var.get()
+    if _cb is not None:
         try:
-            return _sudo_password_callback() or ""
+            return _cb() or ""
         except Exception:
             return ""
 

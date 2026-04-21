@@ -496,7 +496,6 @@ class HermesACPAgent(acp.Agent):
 
         tool_call_ids: dict[str, Deque[str]] = defaultdict(deque)
         tool_call_meta: dict[str, dict[str, Any]] = {}
-        previous_approval_cb = None
 
         if conn:
             tool_progress_cb = make_tool_progress_cb(conn, session_id, loop, tool_call_ids, tool_call_meta)
@@ -517,10 +516,16 @@ class HermesACPAgent(acp.Agent):
         agent.step_callback = step_cb
         agent.message_callback = message_cb
 
+        # Install the per-session approval callback into the current asyncio
+        # task's context.  Because ``terminal_tool._approval_callback_var`` is
+        # a ``ContextVar`` and ``loop.run_in_executor`` propagates the caller's
+        # context to the worker thread, concurrent ACP sessions in the same
+        # process each see their own callback without stomping on each other.
+        # No save/restore is needed: when this coroutine returns, the context
+        # snapshot holding the set is discarded.
         if approval_cb:
             try:
                 from tools import terminal_tool as _terminal_tool
-                previous_approval_cb = getattr(_terminal_tool, "_approval_callback", None)
                 _terminal_tool.set_approval_callback(approval_cb)
             except Exception:
                 logger.debug("Could not set ACP approval callback", exc_info=True)
@@ -536,16 +541,16 @@ class HermesACPAgent(acp.Agent):
             except Exception as e:
                 logger.exception("Agent error in session %s", session_id)
                 return {"final_response": f"Error: {e}", "messages": state.history}
-            finally:
-                if approval_cb:
-                    try:
-                        from tools import terminal_tool as _terminal_tool
-                        _terminal_tool.set_approval_callback(previous_approval_cb)
-                    except Exception:
-                        logger.debug("Could not restore approval callback", exc_info=True)
 
         try:
-            result = await loop.run_in_executor(_executor, _run_agent)
+            # Copy the current asyncio task's context and run the agent inside
+            # it so per-session ContextVar state (e.g. the approval callback
+            # installed above via set_approval_callback) is visible to tool code
+            # executing on the worker thread.  ``loop.run_in_executor`` does NOT
+            # propagate contextvars on its own.
+            import contextvars as _ctxvars
+            _ctx = _ctxvars.copy_context()
+            result = await loop.run_in_executor(_executor, lambda: _ctx.run(_run_agent))
         except Exception:
             logger.exception("Executor error for session %s", session_id)
             return PromptResponse(stop_reason="end_turn")
