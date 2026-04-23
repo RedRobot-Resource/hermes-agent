@@ -210,7 +210,7 @@ class TestAuxiliaryClientWiring:
     def test_try_codex_passes_codex_headers(self, monkeypatch):
         """_try_codex builds the OpenAI client used for compression / vision /
         title generation when routed through Codex. Must emit codex headers."""
-        from hermes_agent.agent import auxiliary_client
+        from hermes_agent.providers import auxiliary as auxiliary_client
         token = _make_codex_jwt("acct-aux-try-codex")
 
         # Force _select_pool_entry to return "no pool" so we fall through to
@@ -235,7 +235,7 @@ class TestAuxiliaryClientWiring:
     def test_resolve_provider_client_raw_codex_passes_codex_headers(self, monkeypatch):
         """The ``raw_codex=True`` branch (used by the main agent loop for direct
         responses.stream() access) must also emit codex headers."""
-        from hermes_agent.agent import auxiliary_client
+        from hermes_agent.providers import auxiliary as auxiliary_client
         token = _make_codex_jwt("acct-aux-raw-codex")
         monkeypatch.setattr(
             auxiliary_client, "_read_codex_access_token",

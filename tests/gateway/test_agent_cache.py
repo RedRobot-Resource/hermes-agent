@@ -888,7 +888,7 @@ class TestAgentCacheIdleResume:
     def test_release_clients_does_not_touch_terminal_or_browser(self, monkeypatch):
         """release_clients must not call cleanup_vm or cleanup_browser."""
         from hermes_agent.agent.loop import AIAgent
-        from hermes_agent.tools import terminal_tool as _tt
+        from hermes_agent.tools import terminal as _tt
         from hermes_agent.tools.browser import tool as _bt
 
         agent = AIAgent(
@@ -950,7 +950,7 @@ class TestAgentCacheIdleResume:
         release_clients() (soft — session may resume).
         """
         from hermes_agent.agent.loop import AIAgent
-        from hermes_agent.tools import terminal_tool as _tt
+        from hermes_agent.tools import terminal as _tt
 
         # Agent A: evicted from cache (soft) — terminal survives.
         # Agent B: session expired (hard) — terminal torn down.

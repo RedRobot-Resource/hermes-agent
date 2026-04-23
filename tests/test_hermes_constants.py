@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-import hermes_agent.constants
+from hermes_agent import constants as hermes_constants
 from hermes_agent.constants import get_default_hermes_root, is_container
 
 

@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-import hermes_agent.logging
+from hermes_agent import logging as hermes_logging
 
 
 @pytest.fixture(autouse=True)
@@ -461,28 +461,28 @@ class TestComponentFilter:
     """Unit tests for _ComponentFilter."""
 
     def test_passes_matching_prefix(self):
-        f = hermes_logging._ComponentFilter(("gateway",))
+        f = hermes_logging._ComponentFilter(("hermes_agent.gateway",))
         record = logging.LogRecord(
             "hermes_agent.gateway.run", logging.INFO, "", 0, "msg", (), None
         )
         assert f.filter(record) is True
 
     def test_passes_nested_matching_prefix(self):
-        f = hermes_logging._ComponentFilter(("gateway",))
+        f = hermes_logging._ComponentFilter(("hermes_agent.gateway",))
         record = logging.LogRecord(
             "hermes_agent.gateway.platforms.telegram", logging.INFO, "", 0, "msg", (), None
         )
         assert f.filter(record) is True
 
     def test_blocks_non_matching(self):
-        f = hermes_logging._ComponentFilter(("gateway",))
+        f = hermes_logging._ComponentFilter(("hermes_agent.gateway",))
         record = logging.LogRecord(
             "hermes_agent.tools.terminal", logging.INFO, "", 0, "msg", (), None
         )
         assert f.filter(record) is False
 
     def test_multiple_prefixes(self):
-        f = hermes_logging._ComponentFilter(("agent", "hermes_agent.agent.loop", "hermes_agent.tools.dispatch"))
+        f = hermes_logging._ComponentFilter(("hermes_agent.agent", "hermes_agent.tools.dispatch"))
         assert f.filter(logging.LogRecord(
             "hermes_agent.agent.compressor", logging.INFO, "", 0, "", (), None
         ))
@@ -501,14 +501,12 @@ class TestComponentPrefixes:
     """COMPONENT_PREFIXES covers the expected components."""
 
     def test_gateway_prefix(self):
-        assert "hermes_agent.gateway" in hermes_logging.COMPONENT_PREFIXES
+        assert "gateway" in hermes_logging.COMPONENT_PREFIXES
         assert ("hermes_agent.gateway",) == hermes_logging.COMPONENT_PREFIXES["gateway"]
 
     def test_agent_prefix(self):
         prefixes = hermes_logging.COMPONENT_PREFIXES["agent"]
-        assert "agent" in prefixes
-        assert "hermes_agent.agent.loop" in prefixes
-        assert "hermes_agent.tools.dispatch" in prefixes
+        assert "hermes_agent.agent" in prefixes
 
     def test_tools_prefix(self):
         assert ("hermes_agent.tools",) == hermes_logging.COMPONENT_PREFIXES["tools"]

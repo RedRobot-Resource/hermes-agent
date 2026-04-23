@@ -14,9 +14,6 @@ from pathlib import Path
 
 import pytest
 
-_repo = str(Path(__file__).resolve().parents[1])
-if _repo not in sys.path:
-
 class TestHostHeaderValidator:
     """Unit test the _is_accepted_host helper directly — cheaper and
     more thorough than spinning up the full FastAPI app."""

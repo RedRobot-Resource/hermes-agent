@@ -15,7 +15,7 @@ def test_show_status_includes_tavily_key(monkeypatch, capsys, tmp_path):
 
 
 def test_show_status_termux_gateway_section_skips_systemctl(monkeypatch, capsys, tmp_path):
-    from hermes_agent.cli import status as status_mod
+    from hermes_agent.cli.ui import status as status_mod
     import hermes_agent.cli.auth.auth as auth_mod
     import hermes_agent.cli.gateway as gateway_mod
 

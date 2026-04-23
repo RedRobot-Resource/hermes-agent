@@ -29,12 +29,12 @@ import sys
 from pathlib import Path
 
 try:
-    from hermes_constants import display_hermes_home, get_hermes_home
+    from hermes_agent.constants import display_hermes_home, get_hermes_home
 except ModuleNotFoundError:
     HERMES_AGENT_ROOT = Path(__file__).resolve().parents[4]
     if HERMES_AGENT_ROOT.exists():
         sys.path.insert(0, str(HERMES_AGENT_ROOT))
-    from hermes_constants import display_hermes_home, get_hermes_home
+    from hermes_agent.constants import display_hermes_home, get_hermes_home
 
 HERMES_HOME = get_hermes_home()
 TOKEN_PATH = HERMES_HOME / "google_token.json"

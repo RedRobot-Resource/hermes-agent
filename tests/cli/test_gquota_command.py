@@ -14,7 +14,7 @@ def test_gquota_uses_chat_console_when_tui_is_live():
     with patch("hermes_agent.cli.repl.ChatConsole", return_value=live_console), \
          patch("hermes_agent.providers.google_oauth.get_valid_access_token", side_effect=GoogleOAuthError("No Google OAuth credentials found")), \
          patch("hermes_agent.providers.google_oauth.load_credentials", return_value=None), \
-         patch("hermes_agent.agent.google_code_assist.retrieve_user_quota"):
+         patch("hermes_agent.providers.google_code_assist.retrieve_user_quota"):
         cli._handle_gquota_command("/gquota")
 
     assert live_console.print.call_count == 2

@@ -88,9 +88,9 @@ class TestHandleUpdateCommand:
                 pass
 
             # Actually, simplest: just patch the specific file attr
-            fake_file = str(fake_root / "gateway" / "run.py")
-            (fake_root / "gateway").mkdir(parents=True)
-            (fake_root / "gateway" / "run.py").touch()
+            fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
+            (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+            (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
 
             with patch("hermes_agent.gateway.run.__file__", fake_file):
                 result = await runner._handle_update_command(event)
@@ -107,9 +107,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
 
         with patch("hermes_agent.gateway.run._hermes_home", tmp_path), \
              patch("hermes_agent.gateway.run.__file__", fake_file), \
@@ -129,9 +129,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
@@ -194,9 +194,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
@@ -223,9 +223,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
@@ -252,9 +252,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
@@ -292,9 +292,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
@@ -318,9 +318,9 @@ class TestHandleUpdateCommand:
         fake_root = tmp_path / "project"
         fake_root.mkdir()
         (fake_root / ".git").mkdir()
-        (fake_root / "gateway").mkdir()
-        (fake_root / "gateway" / "run.py").touch()
-        fake_file = str(fake_root / "gateway" / "run.py")
+        (fake_root / "hermes_agent" / "gateway").mkdir(parents=True)
+        (fake_root / "hermes_agent" / "gateway" / "run.py").touch()
+        fake_file = str(fake_root / "hermes_agent" / "gateway" / "run.py")
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 

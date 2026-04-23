@@ -86,27 +86,27 @@ class TestExtractLevel:
 
 class TestExtractLoggerName:
     def test_standard_line(self):
-        line = "2026-04-11 10:23:45 INFO gateway.run: Starting gateway"
+        line = "2026-04-11 10:23:45 INFO hermes_agent.gateway.run: Starting gateway"
         assert _extract_logger_name(line) == "hermes_agent.gateway.run"
 
     def test_nested_logger(self):
-        line = "2026-04-11 10:23:45 INFO gateway.platforms.telegram: connected"
+        line = "2026-04-11 10:23:45 INFO hermes_agent.gateway.platforms.telegram: connected"
         assert _extract_logger_name(line) == "hermes_agent.gateway.platforms.telegram"
 
     def test_warning_level(self):
-        line = "2026-04-11 10:23:45 WARNING tools.terminal_tool: timeout"
+        line = "2026-04-11 10:23:45 WARNING hermes_agent.tools.terminal: timeout"
         assert _extract_logger_name(line) == "hermes_agent.tools.terminal"
 
     def test_with_session_tag(self):
-        line = "2026-04-11 10:23:45 INFO [abc123] tools.file_tools: reading file"
+        line = "2026-04-11 10:23:45 INFO [abc123] hermes_agent.tools.files.tools: reading file"
         assert _extract_logger_name(line) == "hermes_agent.tools.files.tools"
 
     def test_with_session_tag_and_error(self):
-        line = "2026-04-11 10:23:45 ERROR [sess_xyz] agent.context_compressor: failed"
+        line = "2026-04-11 10:23:45 ERROR [sess_xyz] hermes_agent.agent.context.compressor: failed"
         assert _extract_logger_name(line) == "hermes_agent.agent.context.compressor"
 
     def test_top_level_module(self):
-        line = "2026-04-11 10:23:45 INFO run_agent: starting conversation"
+        line = "2026-04-11 10:23:45 INFO hermes_agent.agent.loop: starting conversation"
         assert _extract_logger_name(line) == "hermes_agent.agent.loop"
 
     def test_no_match(self):
@@ -115,33 +115,33 @@ class TestExtractLoggerName:
 
 class TestLineMatchesComponent:
     def test_gateway_component(self):
-        line = "2026-04-11 10:23:45 INFO gateway.run: msg"
-        assert _line_matches_component(line, ("gateway",))
+        line = "2026-04-11 10:23:45 INFO hermes_agent.gateway.run: msg"
+        assert _line_matches_component(line, ("hermes_agent.gateway",))
 
     def test_gateway_nested(self):
-        line = "2026-04-11 10:23:45 INFO gateway.platforms.telegram: msg"
-        assert _line_matches_component(line, ("gateway",))
+        line = "2026-04-11 10:23:45 INFO hermes_agent.gateway.platforms.telegram: msg"
+        assert _line_matches_component(line, ("hermes_agent.gateway",))
 
     def test_tools_component(self):
-        line = "2026-04-11 10:23:45 INFO tools.terminal_tool: msg"
-        assert _line_matches_component(line, ("tools",))
+        line = "2026-04-11 10:23:45 INFO hermes_agent.tools.terminal: msg"
+        assert _line_matches_component(line, ("hermes_agent.tools",))
 
     def test_agent_with_multiple_prefixes(self):
-        prefixes = ("agent", "hermes_agent.agent.loop", "hermes_agent.tools.dispatch")
+        prefixes = ("hermes_agent.agent", "hermes_agent.tools.dispatch")
         assert _line_matches_component(
-            "2026-04-11 10:23:45 INFO agent.context_compressor: msg", prefixes)
+            "2026-04-11 10:23:45 INFO hermes_agent.agent.context.compressor: msg", prefixes)
         assert _line_matches_component(
-            "2026-04-11 10:23:45 INFO run_agent: msg", prefixes)
+            "2026-04-11 10:23:45 INFO hermes_agent.agent.loop: msg", prefixes)
         assert _line_matches_component(
-            "2026-04-11 10:23:45 INFO model_tools: msg", prefixes)
+            "2026-04-11 10:23:45 INFO hermes_agent.tools.dispatch: msg", prefixes)
 
     def test_no_match(self):
-        line = "2026-04-11 10:23:45 INFO tools.browser: msg"
-        assert not _line_matches_component(line, ("gateway",))
+        line = "2026-04-11 10:23:45 INFO hermes_agent.tools.browser: msg"
+        assert not _line_matches_component(line, ("hermes_agent.gateway",))
 
     def test_with_session_tag(self):
-        line = "2026-04-11 10:23:45 INFO [abc] gateway.run: msg"
-        assert _line_matches_component(line, ("gateway",))
+        line = "2026-04-11 10:23:45 INFO [abc] hermes_agent.gateway.run: msg"
+        assert _line_matches_component(line, ("hermes_agent.gateway",))
 
     def test_unparseable_line(self):
         assert not _line_matches_component("random text", ("gateway",))

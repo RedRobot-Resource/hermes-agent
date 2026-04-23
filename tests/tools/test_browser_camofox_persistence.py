@@ -20,7 +20,7 @@ from hermes_agent.tools.browser.camofox import (
     check_camofox_available,
     get_vnc_url,
 )
-from hermes_agent.tools.browser_camofox_state import get_camofox_identity
+from hermes_agent.tools.browser.camofox_state import get_camofox_identity
 
 
 def _mock_response(status=200, json_data=None):

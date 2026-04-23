@@ -28,7 +28,7 @@ def load_module():
 def load_skills_guard():
     spec = importlib.util.spec_from_file_location(
         "skills_guard_local",
-        Path(__file__).resolve().parents[2] / "tools" / "skills_guard.py",
+        Path(__file__).resolve().parents[2] / "hermes_agent" / "tools" / "skills" / "guard.py",
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None

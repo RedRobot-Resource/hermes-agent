@@ -17,7 +17,7 @@ to be re-exported here.
 
 def check_file_requirements():
     """File tools only require terminal backend availability."""
-    from .terminal_tool import check_terminal_requirements
+    from .terminal import check_terminal_requirements
 
     return check_terminal_requirements()
 

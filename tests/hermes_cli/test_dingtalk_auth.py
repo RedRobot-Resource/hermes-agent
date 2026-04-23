@@ -165,7 +165,7 @@ class TestWaitForSuccess:
 class TestRenderQR:
 
     def test_returns_false_when_qrcode_missing(self, monkeypatch):
-        from hermes_agent.cli import dingtalk_auth
+        from hermes_agent.cli.auth import dingtalk as dingtalk_auth
 
         # Simulate qrcode import failure
         monkeypatch.setitem(sys.modules, "qrcode", None)

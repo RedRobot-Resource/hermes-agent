@@ -9,7 +9,7 @@ import pytest
 
 def _reload_constants():
     """Reload hermes_constants to get a fresh apply_ipv4_preference."""
-    import hermes_agent.constants
+    from hermes_agent import constants as hermes_constants
     importlib.reload(hermes_constants)
     return hermes_constants
 

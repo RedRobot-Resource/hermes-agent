@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[2] / "tools"
+TOOLS_DIR = Path(__file__).resolve().parents[2] / "hermes_agent" / "tools"
 
 
 def _load_tool_module(module_name: str, filename: str):
@@ -67,7 +67,7 @@ def _install_fake_tools_package():
     )
     sys.modules["hermes_agent.tools.managed_gateway"] = _load_tool_module(
         "hermes_agent.tools.managed_gateway",
-        "managed_tool_gateway.py",
+        "managed_gateway.py",
     )
 
 
@@ -174,7 +174,7 @@ def test_managed_fal_submit_uses_gateway_origin_and_nous_token(monkeypatch):
 
     image_generation_tool = _load_tool_module(
         "hermes_agent.tools.media.image_gen",
-        "image_generation_tool.py",
+        "media/image_gen.py",
     )
     monkeypatch.setattr(image_generation_tool.uuid, "uuid4", lambda: "fal-submit-123")
     
@@ -202,7 +202,7 @@ def test_managed_fal_submit_reuses_cached_sync_client(monkeypatch):
 
     image_generation_tool = _load_tool_module(
         "hermes_agent.tools.media.image_gen",
-        "image_generation_tool.py",
+        "media/image_gen.py",
     )
 
     image_generation_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "first"})
@@ -222,7 +222,7 @@ def test_openai_tts_uses_managed_audio_gateway_when_direct_key_absent(monkeypatc
     monkeypatch.setenv("TOOL_GATEWAY_DOMAIN", "nousresearch.com")
     monkeypatch.setenv("TOOL_GATEWAY_USER_TOKEN", "nous-token")
 
-    tts_tool = _load_tool_module("hermes_agent.tools.media.tts", "tts_tool.py")
+    tts_tool = _load_tool_module("hermes_agent.tools.media.tts", "media/tts.py")
     monkeypatch.setattr(tts_tool.uuid, "uuid4", lambda: "tts-call-123")
     output_path = tmp_path / "speech.mp3"
     tts_tool._generate_openai_tts("hello world", str(output_path), {"openai": {}})
@@ -244,7 +244,7 @@ def test_openai_tts_accepts_openai_api_key_as_direct_fallback(monkeypatch, tmp_p
     monkeypatch.setenv("TOOL_GATEWAY_DOMAIN", "nousresearch.com")
     monkeypatch.setenv("TOOL_GATEWAY_USER_TOKEN", "nous-token")
 
-    tts_tool = _load_tool_module("hermes_agent.tools.media.tts", "tts_tool.py")
+    tts_tool = _load_tool_module("hermes_agent.tools.media.tts", "media/tts.py")
     output_path = tmp_path / "speech.mp3"
     tts_tool._generate_openai_tts("hello world", str(output_path), {"openai": {}})
 
@@ -266,7 +266,7 @@ def test_transcription_uses_model_specific_response_formats(monkeypatch, tmp_pat
 
     transcription_tools = _load_tool_module(
         "hermes_agent.tools.media.transcription",
-        "transcription_tools.py",
+        "media/transcription.py",
     )
     transcription_tools._load_stt_config = lambda: {"provider": "openai"}
     audio_path = tmp_path / "audio.wav"
@@ -285,7 +285,7 @@ def test_transcription_uses_model_specific_response_formats(monkeypatch, tmp_pat
     )
     transcription_tools = _load_tool_module(
         "hermes_agent.tools.media.transcription",
-        "transcription_tools.py",
+        "media/transcription.py",
     )
 
     json_result = transcription_tools.transcribe_audio(

@@ -22,9 +22,9 @@ class TestFirecrawlClientConfig:
 
     def setup_method(self):
         """Reset client and env vars before each test."""
-        import hermes_agent.tools.web
-        tools.web_tools._firecrawl_client = None
-        tools.web_tools._firecrawl_client_config = None
+        from hermes_agent.tools import web as web_tools_mod
+        web_tools_mod._firecrawl_client = None
+        web_tools_mod._firecrawl_client_config = None
         for key in (
             "FIRECRAWL_API_KEY",
             "FIRECRAWL_API_URL",
@@ -46,9 +46,9 @@ class TestFirecrawlClientConfig:
 
     def teardown_method(self):
         """Reset client after each test."""
-        import hermes_agent.tools.web
-        tools.web_tools._firecrawl_client = None
-        tools.web_tools._firecrawl_client_config = None
+        from hermes_agent.tools import web as web_tools_mod
+        web_tools_mod._firecrawl_client = None
+        web_tools_mod._firecrawl_client_config = None
         for key in (
             "FIRECRAWL_API_KEY",
             "FIRECRAWL_API_URL",
@@ -156,30 +156,30 @@ class TestFirecrawlClientConfig:
             "HOME": str(real_home),
             "HERMES_HOME": str(hermes_home),
         }, clear=False):
-            import hermes_agent.tools.web
-            importlib.reload(tools.web_tools)
-            assert tools.web_tools._read_nous_access_token() == "nous-token"
+            from hermes_agent.tools import web as web_tools_mod
+            importlib.reload(web_tools_mod)
+            assert web_tools_mod._read_nous_access_token() == "nous-token"
 
     def test_check_auxiliary_model_re_resolves_backend_each_call(self):
         """Availability checks should not be pinned to module import state."""
-        import hermes_agent.tools.web
+        from hermes_agent.tools import web as web_tools_mod
 
         # Simulate the pre-fix import-time cache slot for regression coverage.
-        tools.web_tools.__dict__["_aux_async_client"] = None
+        web_tools_mod.__dict__["_aux_async_client"] = None
 
         with patch(
             "hermes_agent.tools.web.get_async_text_auxiliary_client",
             side_effect=[(None, None), (MagicMock(base_url="https://api.openrouter.ai/v1"), "test-model")],
         ):
-            assert tools.web_tools.check_auxiliary_model() is False
-            assert tools.web_tools.check_auxiliary_model() is True
+            assert web_tools_mod.check_auxiliary_model() is False
+            assert web_tools_mod.check_auxiliary_model() is True
 
     @pytest.mark.asyncio
     async def test_summarizer_re_resolves_backend_after_initial_unavailable_state(self):
         """Summarization should pick up a backend that becomes available later in-process."""
-        import hermes_agent.tools.web
+        from hermes_agent.tools import web as web_tools_mod
 
-        tools.web_tools.__dict__["_aux_async_client"] = None
+        web_tools_mod.__dict__["_aux_async_client"] = None
 
         response = MagicMock()
         response.choices = [MagicMock(message=MagicMock(content="summary text"))]
@@ -191,8 +191,8 @@ class TestFirecrawlClientConfig:
             "hermes_agent.tools.web.async_call_llm",
             new=AsyncMock(return_value=response),
         ) as mock_async_call:
-            assert tools.web_tools.check_auxiliary_model() is False
-            result = await tools.web_tools._call_summarizer_llm(
+            assert web_tools_mod.check_auxiliary_model() is False
+            result = await web_tools_mod._call_summarizer_llm(
                 "Some content worth summarizing",
                 "Source: https://example.com\n\n",
                 None,
@@ -215,7 +215,7 @@ class TestFirecrawlClientConfig:
 
     def test_constructor_failure_allows_retry(self):
         """If Firecrawl() raises, next call should retry (not return None)."""
-        import hermes_agent.tools.web
+        from hermes_agent.tools import web as web_tools_mod
         with patch.dict(os.environ, {"FIRECRAWL_API_KEY": "fc-test"}):
             with patch("hermes_agent.tools.web.Firecrawl") as mock_fc:
                 mock_fc.side_effect = [RuntimeError("init failed"), MagicMock()]
@@ -225,7 +225,7 @@ class TestFirecrawlClientConfig:
                     _get_firecrawl_client()
 
                 # Client stayed None, so retry should work
-                assert tools.web_tools._firecrawl_client is None
+                assert web_tools_mod._firecrawl_client is None
                 result = _get_firecrawl_client()
                 assert result is not None
 
@@ -401,8 +401,8 @@ class TestParallelClientConfig:
     """Test suite for Parallel client initialization."""
 
     def setup_method(self):
-        import hermes_agent.tools.web
-        tools.web_tools._parallel_client = None
+        from hermes_agent.tools import web as web_tools_mod
+        web_tools_mod._parallel_client = None
         os.environ.pop("PARALLEL_API_KEY", None)
         fake_parallel = types.ModuleType("parallel")
 
@@ -419,8 +419,8 @@ class TestParallelClientConfig:
         sys.modules["parallel"] = fake_parallel
 
     def teardown_method(self):
-        import hermes_agent.tools.web
-        tools.web_tools._parallel_client = None
+        from hermes_agent.tools import web as web_tools_mod
+        web_tools_mod._parallel_client = None
         os.environ.pop("PARALLEL_API_KEY", None)
         sys.modules.pop("parallel", None)
 
@@ -452,7 +452,7 @@ class TestWebSearchErrorHandling:
     """Test suite for web_search_tool() error responses."""
 
     def test_search_error_response_does_not_expose_diagnostics(self):
-        import hermes_agent.tools.web
+        from hermes_agent.tools import web as web_tools_mod
 
         firecrawl_client = MagicMock()
         firecrawl_client.search.side_effect = RuntimeError("boom")
@@ -460,9 +460,9 @@ class TestWebSearchErrorHandling:
         with patch("hermes_agent.tools.web._get_backend", return_value="firecrawl"), \
              patch("hermes_agent.tools.web._get_firecrawl_client", return_value=firecrawl_client), \
              patch("hermes_agent.tools.interrupt.is_interrupted", return_value=False), \
-             patch.object(tools.web_tools._debug, "log_call") as mock_log_call, \
-             patch.object(tools.web_tools._debug, "save"):
-            result = json.loads(tools.web_tools.web_search_tool("test query", limit=3))
+             patch.object(web_tools_mod._debug, "log_call") as mock_log_call, \
+             patch.object(web_tools_mod._debug, "save"):
+            result = json.loads(web_tools_mod.web_search_tool("test query", limit=3))
 
         assert result == {"error": "Error searching web: boom"}
 

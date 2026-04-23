@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import hermes_agent.cli.plugins as plugins_mod
-import hermes_agent.tools.dispatch
+from hermes_agent.tools import dispatch as model_tools
 
 
 _UNSET = object()

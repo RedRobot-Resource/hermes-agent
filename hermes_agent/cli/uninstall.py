@@ -26,7 +26,7 @@ def log_warn(msg: str):
 
 def get_project_root() -> Path:
     """Get the project installation directory."""
-    return Path(__file__).parent.parent.resolve()
+    return Path(__file__).resolve().parents[2].resolve()
 
 
 def find_shell_configs() -> list:

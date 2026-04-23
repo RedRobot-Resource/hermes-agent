@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 from zoneinfo import ZoneInfo
 
-import hermes_agent.time
+from hermes_agent import time as hermes_time
 
 
 def _reset_hermes_time_cache():

@@ -8,7 +8,7 @@ pin the translation and the curated-list filtering.
 import json
 from unittest.mock import patch, MagicMock
 
-from hermes_agent.cli import models as models_module
+from hermes_agent.cli.models import models as models_module
 from hermes_agent.cli.models.models import (
     VERCEL_AI_GATEWAY_MODELS,
     _ai_gateway_model_is_free,

@@ -58,8 +58,6 @@ def _cap_retaindb_sleeps(monkeypatch):
 
 # We need the repo root on sys.path so the plugin can import agent.memory_provider
 import sys
-_repo_root = str(Path(__file__).resolve().parents[2])
-if _repo_root not in sys.path:
 from hermes_agent.plugins.memory.retaindb import (
     _Client,
     _WriteQueue,

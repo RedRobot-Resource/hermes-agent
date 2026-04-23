@@ -349,7 +349,7 @@ def test_browser_navigate_allows_when_shared_file_missing(monkeypatch, tmp_path)
 
 @pytest.mark.asyncio
 async def test_web_extract_short_circuits_blocked_url(monkeypatch):
-    from hermes_agent.tools import web_tools
+    from hermes_agent.tools import web as web_tools
 
     # Allow test URLs past SSRF check so website policy is what gets tested
     monkeypatch.setattr(web_tools, "is_safe_url", lambda url: True)
@@ -397,7 +397,7 @@ def test_check_website_access_fails_open_on_malformed_config(tmp_path, monkeypat
 
 @pytest.mark.asyncio
 async def test_web_extract_blocks_redirected_final_url(monkeypatch):
-    from hermes_agent.tools import web_tools
+    from hermes_agent.tools import web as web_tools
 
     # Allow test URLs past SSRF check so website policy is what gets tested
     monkeypatch.setattr(web_tools, "is_safe_url", lambda url: True)
@@ -437,7 +437,7 @@ async def test_web_extract_blocks_redirected_final_url(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_web_crawl_short_circuits_blocked_url(monkeypatch):
-    from hermes_agent.tools import web_tools
+    from hermes_agent.tools import web as web_tools
 
     # web_crawl_tool checks for Firecrawl env before website policy
     monkeypatch.setenv("FIRECRAWL_API_KEY", "fake-key")
@@ -468,7 +468,7 @@ async def test_web_crawl_short_circuits_blocked_url(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_web_crawl_blocks_redirected_final_url(monkeypatch):
-    from hermes_agent.tools import web_tools
+    from hermes_agent.tools import web as web_tools
 
     # web_crawl_tool checks for Firecrawl env before website policy
     monkeypatch.setenv("FIRECRAWL_API_KEY", "fake-key")

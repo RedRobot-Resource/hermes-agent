@@ -81,7 +81,7 @@ class TestSourceLinesAreClamped:
             return f.read()
 
     def test_gateway_run_clamped(self):
-        src = self._read_file("gateway/run.py")
+        src = self._read_file("hermes_agent/gateway/run.py")
         # Check that the stats handler has min(100, ...)
         assert "min(100, ctx.last_prompt_tokens" in src, (
             "gateway/run.py stats pct is not clamped with min(100, ...)"
@@ -94,7 +94,7 @@ class TestSourceLinesAreClamped:
         )
 
     def test_memory_tool_clamped(self):
-        src = self._read_file("tools/memory_tool.py")
+        src = self._read_file("hermes_agent/tools/memory.py")
         # Both _success_response and _render_block should have min(100, ...)
         count = src.count("min(100, int((current / limit)")
         assert count >= 2, (

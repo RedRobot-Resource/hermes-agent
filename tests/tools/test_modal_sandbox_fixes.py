@@ -16,7 +16,6 @@ import pytest
 
 # Ensure repo root is importable
 _repo_root = Path(__file__).resolve().parent.parent.parent
-if str(_repo_root) not in sys.path:
 try:
     import hermes_agent.tools.terminal  # noqa: F401
     _tt_mod = sys.modules["hermes_agent.tools.terminal"]

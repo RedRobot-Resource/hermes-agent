@@ -217,7 +217,7 @@ def get_env_path() -> Path:
 
 def get_project_root() -> Path:
     """Get the project installation directory."""
-    return Path(__file__).parent.parent.resolve()
+    return Path(__file__).resolve().parents[2].resolve()
 
 def _secure_dir(path):
     """Set directory to owner-only access (0700 by default). No-op on Windows.

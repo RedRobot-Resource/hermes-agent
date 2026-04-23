@@ -153,7 +153,7 @@ class TestSessionKeyContext:
             approval_module.reset_current_session_key(token)
 
     def test_gateway_runner_binds_session_key_to_context_before_agent_run(self):
-        run_py = Path(__file__).resolve().parents[2] / "gateway" / "run.py"
+        run_py = Path(__file__).resolve().parents[2] / "hermes_agent" / "gateway" / "run.py"
         module = ast.parse(run_py.read_text(encoding="utf-8"))
 
         run_sync = None

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_agent.agent import image_gen_registry
+from hermes_agent.agent.image_gen import registry as image_gen_registry
 from hermes_agent.agent.image_gen.provider import ImageGenProvider
 
 

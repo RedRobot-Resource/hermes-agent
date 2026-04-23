@@ -10,7 +10,8 @@ from unittest.mock import patch
 import pytest
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[2] / "tools"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TOOLS_DIR = REPO_ROOT / "hermes_agent" / "tools"
 
 
 def _load_tool_module(module_name: str, filename: str):
@@ -66,7 +67,7 @@ def _install_fake_tools_package():
     sys.modules["tools"] = tools_package
 
     env_package = types.ModuleType("hermes_agent.backends")
-    env_package.__path__ = [str(TOOLS_DIR / "environments")]  # type: ignore[attr-defined]
+    env_package.__path__ = [str(REPO_ROOT / "hermes_agent" / "backends")]  # type: ignore[attr-defined]
     sys.modules["hermes_agent.backends"] = env_package
 
     agent_package = types.ModuleType("agent")
@@ -78,7 +79,7 @@ def _install_fake_tools_package():
 
     sys.modules["hermes_agent.tools.managed_gateway"] = _load_tool_module(
         "hermes_agent.tools.managed_gateway",
-        "managed_tool_gateway.py",
+        "managed_gateway.py",
     )
 
     interrupt_event = threading.Event()
@@ -137,7 +138,7 @@ def test_browser_use_explicit_local_mode_stays_local_even_when_managed_gateway_i
     })
 
     with patch.dict(os.environ, env, clear=True):
-        browser_tool = _load_tool_module("hermes_agent.tools.browser.tool", "browser_tool.py")
+        browser_tool = _load_tool_module("hermes_agent.tools.browser.tool", "browser/tool.py")
 
         local_mode = browser_tool._is_local_mode()
         provider = browser_tool._get_cloud_provider()
@@ -159,7 +160,7 @@ def test_browserbase_does_not_use_gateway_only_configuration():
     with patch.dict(os.environ, env, clear=True):
         browserbase_module = _load_tool_module(
             "hermes_agent.tools.browser.providers.browserbase",
-            "browser_providers/browserbase.py",
+            "browser/providers/browserbase.py",
         )
         provider = browserbase_module.BrowserbaseProvider()
 
@@ -190,7 +191,7 @@ def test_browser_use_managed_gateway_adds_idempotency_key_and_persists_external_
     with patch.dict(os.environ, env, clear=True):
         browser_use_module = _load_tool_module(
             "hermes_agent.tools.browser.providers.browser_use",
-            "browser_providers/browser_use.py",
+            "browser/providers/browser_use.py",
         )
 
         with patch.object(browser_use_module.requests, "post", return_value=_Response()) as post:
@@ -230,7 +231,7 @@ def test_browser_use_managed_gateway_reuses_pending_idempotency_key_after_timeou
     with patch.dict(os.environ, env, clear=True):
         browser_use_module = _load_tool_module(
             "hermes_agent.tools.browser.providers.browser_use",
-            "browser_providers/browser_use.py",
+            "browser/providers/browser_use.py",
         )
         provider = browser_use_module.BrowserUseProvider()
         timeout = browser_use_module.requests.Timeout("timed out")
@@ -292,7 +293,7 @@ def test_browser_use_managed_gateway_preserves_pending_idempotency_key_for_in_pr
     with patch.dict(os.environ, env, clear=True):
         browser_use_module = _load_tool_module(
             "hermes_agent.tools.browser.providers.browser_use",
-            "browser_providers/browser_use.py",
+            "browser/providers/browser_use.py",
         )
         provider = browser_use_module.BrowserUseProvider()
 
@@ -339,7 +340,7 @@ def test_browser_use_managed_gateway_uses_new_idempotency_key_for_a_new_session_
     with patch.dict(os.environ, env, clear=True):
         browser_use_module = _load_tool_module(
             "hermes_agent.tools.browser.providers.browser_use",
-            "browser_providers/browser_use.py",
+            "browser/providers/browser_use.py",
         )
         provider = browser_use_module.BrowserUseProvider()
 
@@ -359,7 +360,7 @@ def test_terminal_tool_prefers_managed_modal_when_gateway_ready_and_no_direct_cr
     env.pop("MODAL_TOKEN_SECRET", None)
 
     with patch.dict(os.environ, env, clear=True):
-        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal_tool.py")
+        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal.py")
 
         with (
             patch.object(terminal_tool, "is_managed_tool_gateway_ready", return_value=True),
@@ -396,7 +397,7 @@ def test_terminal_tool_auto_mode_prefers_managed_modal_when_available():
     })
 
     with patch.dict(os.environ, env, clear=True):
-        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal_tool.py")
+        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal.py")
 
         with (
             patch.object(terminal_tool, "is_managed_tool_gateway_ready", return_value=True),
@@ -432,7 +433,7 @@ def test_terminal_tool_auto_mode_falls_back_to_direct_modal_when_managed_unavail
     })
 
     with patch.dict(os.environ, env, clear=True):
-        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal_tool.py")
+        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal.py")
 
         with (
             patch.object(terminal_tool, "is_managed_tool_gateway_ready", return_value=False),
@@ -466,7 +467,7 @@ def test_terminal_tool_respects_direct_modal_mode_without_falling_back_to_manage
     env.pop("MODAL_TOKEN_SECRET", None)
 
     with patch.dict(os.environ, env, clear=True):
-        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal_tool.py")
+        terminal_tool = _load_tool_module("hermes_agent.tools.terminal", "terminal.py")
 
         with (
             patch.object(terminal_tool, "is_managed_tool_gateway_ready", return_value=True),

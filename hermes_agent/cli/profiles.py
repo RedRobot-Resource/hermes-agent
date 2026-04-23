@@ -469,11 +469,11 @@ def seed_profile_skills(profile_dir: Path, quiet: bool = False) -> Optional[dict
     Uses subprocess because sync_skills() caches HERMES_HOME at module level.
     Returns the sync result dict, or None on failure.
     """
-    project_root = Path(__file__).parent.parent.resolve()
+    project_root = Path(__file__).resolve().parents[2].resolve()
     try:
         result = subprocess.run(
             [sys.executable, "-c",
-             "import json; from tools.skills_sync import sync_skills; "
+             "import json; from hermes_agent.tools.skills.sync import sync_skills; "
              "r = sync_skills(quiet=True); print(json.dumps(r))"],
             env={**os.environ, "HERMES_HOME": str(profile_dir)},
             cwd=str(project_root),

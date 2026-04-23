@@ -264,7 +264,7 @@ class TestRootLevelProviderOverride:
             },
         }))
 
-        import hermes_agent.cli.repl
+        from hermes_agent.cli import repl as cli
         monkeypatch.setattr(cli, "_hermes_home", hermes_home)
         cfg = cli.load_cli_config()
 
@@ -287,7 +287,7 @@ class TestRootLevelProviderOverride:
             },
         }))
 
-        import hermes_agent.cli.repl
+        from hermes_agent.cli import repl as cli
         monkeypatch.setattr(cli, "_hermes_home", hermes_home)
         cfg = cli.load_cli_config()
 

@@ -38,9 +38,9 @@ from typing import Any, Dict, Iterator, List, Optional
 
 import httpx
 
-from hermes_agent.agent import google_oauth
+from hermes_agent.providers import google_oauth
 from hermes_agent.providers.gemini_schema import sanitize_gemini_tool_parameters
-from hermes_agent.agent.google_code_assist import (
+from hermes_agent.providers.google_code_assist import (
     CODE_ASSIST_ENDPOINT,
     FREE_TIER_ID,
     CodeAssistError,

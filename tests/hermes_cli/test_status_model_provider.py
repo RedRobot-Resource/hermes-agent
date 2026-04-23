@@ -27,7 +27,7 @@ def _patch_common_status_deps(monkeypatch, status_mod, tmp_path, *, openai_base_
 
 
 def test_show_status_displays_configured_dict_model_and_provider_label(monkeypatch, capsys, tmp_path):
-    from hermes_agent.cli import status as status_mod
+    from hermes_agent.cli.ui import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
     monkeypatch.setattr(
@@ -48,7 +48,7 @@ def test_show_status_displays_configured_dict_model_and_provider_label(monkeypat
 
 
 def test_show_status_displays_legacy_string_model_and_custom_endpoint(monkeypatch, capsys, tmp_path):
-    from hermes_agent.cli import status as status_mod
+    from hermes_agent.cli.ui import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path, openai_base_url="http://localhost:8080/v1")
     monkeypatch.setattr(status_mod, "load_config", lambda: {"model": "qwen3:latest"}, raising=False)
@@ -65,7 +65,7 @@ def test_show_status_displays_legacy_string_model_and_custom_endpoint(monkeypatc
 
 def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr("hermes_agent.cli.ui.status.managed_nous_tools_enabled", lambda: True)
-    from hermes_agent.cli import status as status_mod
+    from hermes_agent.cli.ui import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
     monkeypatch.setattr(
@@ -105,7 +105,7 @@ def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path
 
 def test_show_status_hides_nous_subscription_section_when_feature_flag_is_off(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr("hermes_agent.cli.ui.status.managed_nous_tools_enabled", lambda: False)
-    from hermes_agent.cli import status as status_mod
+    from hermes_agent.cli.ui import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
     monkeypatch.setattr(

@@ -27,7 +27,7 @@ from hermes_agent.constants import get_optional_skills_dir
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2].resolve()
 
 _DOCS_BASE = "https://hermes-agent.nousresearch.com/docs"
 

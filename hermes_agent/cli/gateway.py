@@ -13,7 +13,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2].resolve()
 
 from hermes_agent.gateway.status import terminate_pid
 from hermes_agent.gateway.restart import (

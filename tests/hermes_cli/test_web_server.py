@@ -108,7 +108,7 @@ class TestWebServerEndpoints:
         except ImportError:
             pytest.skip("fastapi/starlette not installed")
 
-        import hermes_agent.state
+        from hermes_agent import state as hermes_state
         from hermes_agent.constants import get_hermes_home
         from hermes_agent.cli.web_server import app, _SESSION_TOKEN
 
@@ -522,7 +522,7 @@ class TestNewEndpoints:
         except ImportError:
             pytest.skip("fastapi/starlette not installed")
 
-        import hermes_agent.state
+        from hermes_agent import state as hermes_state
         from hermes_agent.constants import get_hermes_home
         from hermes_agent.cli.web_server import app, _SESSION_TOKEN
 

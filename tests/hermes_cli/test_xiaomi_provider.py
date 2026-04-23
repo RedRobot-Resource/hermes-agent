@@ -148,7 +148,7 @@ class TestXiaomiModelCatalog:
 
     def test_list_agentic_models_mock(self, monkeypatch):
         """When models.dev returns Xiaomi data, list_agentic_models should return models."""
-        from hermes_agent.agent import models_dev as md
+        from hermes_agent.providers import metadata_dev as md
 
         fake_data = {
             "xiaomi": {

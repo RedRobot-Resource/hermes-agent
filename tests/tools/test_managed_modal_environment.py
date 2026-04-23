@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[2] / "tools"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TOOLS_DIR = REPO_ROOT / "hermes_agent"
 
 
 def _load_tool_module(module_name: str, filename: str):
@@ -56,11 +57,11 @@ def _install_fake_tools_package(*, credential_mounts=None):
     )
 
     tools_package = types.ModuleType("tools")
-    tools_package.__path__ = [str(TOOLS_DIR)]  # type: ignore[attr-defined]
+    tools_package.__path__ = [str(REPO_ROOT / "hermes_agent" / "tools")]  # type: ignore[attr-defined]
     sys.modules["tools"] = tools_package
 
     env_package = types.ModuleType("hermes_agent.backends")
-    env_package.__path__ = [str(TOOLS_DIR / "environments")]  # type: ignore[attr-defined]
+    env_package.__path__ = [str(REPO_ROOT / "hermes_agent" / "backends")]  # type: ignore[attr-defined]
     sys.modules["hermes_agent.backends"] = env_package
 
     interrupt_event = threading.Event()
@@ -109,7 +110,7 @@ class _FakeResponse:
 
 def test_managed_modal_execute_polls_until_completed(monkeypatch):
     _install_fake_tools_package()
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
     modal_common = sys.modules["hermes_agent.backends.modal_utils"]
 
     calls = []
@@ -148,7 +149,7 @@ def test_managed_modal_execute_polls_until_completed(monkeypatch):
 
 def test_managed_modal_create_sends_a_stable_idempotency_key(monkeypatch):
     _install_fake_tools_package()
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
 
     create_headers = []
 
@@ -172,7 +173,7 @@ def test_managed_modal_create_sends_a_stable_idempotency_key(monkeypatch):
 
 def test_managed_modal_execute_cancels_on_interrupt(monkeypatch):
     interrupt_event = _install_fake_tools_package()
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
     modal_common = sys.modules["hermes_agent.backends.modal_utils"]
 
     calls = []
@@ -214,7 +215,7 @@ def test_managed_modal_execute_cancels_on_interrupt(monkeypatch):
 
 def test_managed_modal_execute_returns_descriptive_error_on_missing_exec(monkeypatch):
     _install_fake_tools_package()
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
     modal_common = sys.modules["hermes_agent.backends.modal_utils"]
 
     def fake_request(method, url, headers=None, json=None, timeout=None):
@@ -241,7 +242,7 @@ def test_managed_modal_execute_returns_descriptive_error_on_missing_exec(monkeyp
 
 def test_managed_modal_create_and_cleanup_preserve_gateway_persistence_fields(monkeypatch):
     _install_fake_tools_package()
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
 
     create_payloads = []
     terminate_payloads = []
@@ -284,7 +285,7 @@ def test_managed_modal_rejects_host_credential_passthrough():
             "container_path": "/root/.hermes/token.json",
         }]
     )
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
 
     with pytest.raises(ValueError, match="credential-file passthrough"):
         managed_modal.ManagedModalEnvironment(image="python:3.11")
@@ -292,7 +293,7 @@ def test_managed_modal_rejects_host_credential_passthrough():
 
 def test_managed_modal_execute_times_out_and_cancels(monkeypatch):
     _install_fake_tools_package()
-    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "environments/managed_modal.py")
+    managed_modal = _load_tool_module("hermes_agent.backends.managed_modal", "backends/managed_modal.py")
     modal_common = sys.modules["hermes_agent.backends.modal_utils"]
 
     calls = []

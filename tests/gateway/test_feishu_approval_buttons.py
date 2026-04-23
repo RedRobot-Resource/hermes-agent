@@ -10,12 +10,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # ---------------------------------------------------------------------------
-# Ensure the repo root is importable
-# ---------------------------------------------------------------------------
-_repo = str(Path(__file__).resolve().parents[2])
-if _repo not in sys.path:
-
-# ---------------------------------------------------------------------------
 # Minimal Feishu mock so FeishuAdapter can be imported without lark-oapi
 # ---------------------------------------------------------------------------
 def _ensure_feishu_mocks():

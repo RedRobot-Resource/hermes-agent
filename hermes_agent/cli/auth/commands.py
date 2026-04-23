@@ -197,7 +197,7 @@ def auth_add_command(args) -> None:
         return
 
     if provider == "anthropic":
-        from hermes_agent.agent import anthropic_adapter as anthropic_mod
+        from hermes_agent.providers import anthropic_adapter as anthropic_mod
 
         creds = anthropic_mod.run_hermes_oauth_login_pure()
         if not creds:

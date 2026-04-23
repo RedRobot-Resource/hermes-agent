@@ -22,7 +22,7 @@ sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))
 sys.modules.setdefault("fal_client", types.SimpleNamespace())
 
 import hermes_agent.gateway.run as gateway_run
-import hermes_agent.agent.loop
+from hermes_agent.agent import loop as run_agent
 from hermes_agent.gateway.config import Platform
 from hermes_agent.gateway.session import SessionSource
 

@@ -5,8 +5,8 @@ from unittest.mock import patch
 from rich.console import Console
 
 import hermes_agent.cli.ui.banner as banner
-import hermes_agent.tools.dispatch
-import hermes_agent.tools.mcp.tool
+from hermes_agent.tools import dispatch as model_tools
+from hermes_agent.tools.mcp import tool as mcp_tool
 
 
 def test_display_toolset_name_strips_legacy_suffix():
@@ -42,7 +42,7 @@ def test_build_welcome_banner_uses_normalized_toolset_names():
         ),
         patch.object(banner, "get_available_skills", return_value={}),
         patch.object(banner, "get_update_result", return_value=None),
-        patch.object(tools.mcp_tool, "get_mcp_status", return_value=[]),
+        patch.object(mcp_tool, "get_mcp_status", return_value=[]),
     ):
         console = Console(
             record=True, force_terminal=False, color_system=None, width=160

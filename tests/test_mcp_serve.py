@@ -29,7 +29,7 @@ def _isolate_hermes_home(tmp_path, monkeypatch):
     """Redirect HERMES_HOME to a temp directory."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     try:
-        import hermes_agent.constants
+        from hermes_agent import constants as hermes_constants
         monkeypatch.setattr(hermes_constants, "get_hermes_home", lambda: tmp_path)
     except (ImportError, AttributeError):
         pass
@@ -213,13 +213,13 @@ def mock_session_db(tmp_path, populated_sessions_dir):
 
 class TestImports:
     def test_import_module(self):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         assert hasattr(mcp_serve, "create_mcp_server")
         assert hasattr(mcp_serve, "run_mcp_server")
         assert hasattr(mcp_serve, "EventBridge")
 
     def test_mcp_available_flag(self):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         assert isinstance(mcp_serve._MCP_SERVER_AVAILABLE, bool)
 
 
@@ -230,19 +230,19 @@ class TestHelpers:
         assert result == tmp_path / "sessions"
 
     def test_load_sessions_index_empty(self, sessions_dir, monkeypatch):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
         assert mcp_serve._load_sessions_index() == {}
 
     def test_load_sessions_index_with_data(self, populated_sessions_dir, monkeypatch):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: populated_sessions_dir)
         result = mcp_serve._load_sessions_index()
         assert len(result) == 3
 
     def test_load_sessions_index_corrupt(self, sessions_dir, monkeypatch):
         (sessions_dir / "sessions.json").write_text("not json!")
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
         assert mcp_serve._load_sessions_index() == {}
 
@@ -442,7 +442,7 @@ class TestEventBridge:
 def mcp_server_e2e(populated_sessions_dir, mock_session_db, monkeypatch):
     """Create a fully wired MCP server for E2E testing."""
     mcp = pytest.importorskip("mcp", reason="MCP SDK not installed")
-    import hermes_agent.tools.mcp.serve
+    from hermes_agent.tools.mcp import serve as mcp_serve
     monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: populated_sessions_dir)
     monkeypatch.setattr(mcp_serve, "_get_session_db", lambda: mock_session_db)
     monkeypatch.setattr(mcp_serve, "_load_channel_directory", lambda: {})
@@ -727,7 +727,7 @@ class TestE2EChannelsList:
         assert result["channels"][0]["target"] == "slack:C1234"
 
     def test_channels_with_directory(self, mcp_server_e2e, _event_loop, monkeypatch):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_load_channel_directory", lambda: {
             "telegram": [
                 {"id": "123456", "name": "Alice", "type": "dm"},
@@ -823,19 +823,19 @@ class TestToolRegistration:
 class TestServerCreation:
     def test_create_server(self, populated_sessions_dir, monkeypatch):
         pytest.importorskip("mcp", reason="MCP SDK not installed")
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: populated_sessions_dir)
         assert mcp_serve.create_mcp_server() is not None
 
     def test_create_with_bridge(self, populated_sessions_dir, monkeypatch):
         pytest.importorskip("mcp", reason="MCP SDK not installed")
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: populated_sessions_dir)
         bridge = mcp_serve.EventBridge()
         assert mcp_serve.create_mcp_server(event_bridge=bridge) is not None
 
     def test_create_without_mcp_sdk(self, monkeypatch):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_MCP_SERVER_AVAILABLE", False)
         with pytest.raises(ImportError, match="MCP server requires"):
             mcp_serve.create_mcp_server()
@@ -843,7 +843,7 @@ class TestServerCreation:
 
 class TestRunMcpServer:
     def test_run_without_mcp_exits(self, monkeypatch):
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_MCP_SERVER_AVAILABLE", False)
         with pytest.raises(SystemExit) as exc_info:
             mcp_serve.run_mcp_server()
@@ -895,7 +895,7 @@ class TestCliIntegration:
 class TestEdgeCases:
     def test_empty_sessions_json(self, sessions_dir, monkeypatch):
         (sessions_dir / "sessions.json").write_text("{}")
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
         assert mcp_serve._load_sessions_index() == {}
 
@@ -907,7 +907,7 @@ class TestEdgeCases:
             "updated_at": "2026-03-29T12:00:00",
         }}
         (sessions_dir / "sessions.json").write_text(json.dumps(data))
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
         entries = mcp_serve._load_sessions_index()
         assert entries["agent:main:telegram:dm:111"]["platform"] == "telegram"
@@ -933,7 +933,7 @@ class TestEventBridgePollE2E:
 
     def test_poll_detects_new_messages(self, tmp_path, monkeypatch):
         """Write to SQLite + sessions.json, verify EventBridge picks it up."""
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         sessions_dir = tmp_path / "sessions"
         sessions_dir.mkdir()
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
@@ -991,7 +991,7 @@ class TestEventBridgePollE2E:
 
     def test_poll_skips_when_unchanged(self, tmp_path, monkeypatch):
         """Second poll with no file changes should be a no-op."""
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         sessions_dir = tmp_path / "sessions"
         sessions_dir.mkdir()
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
@@ -1043,7 +1043,7 @@ class TestEventBridgePollE2E:
 
     def test_poll_detects_new_message_after_db_write(self, tmp_path, monkeypatch):
         """Write a new message to the DB after first poll, verify it's detected."""
-        import hermes_agent.tools.mcp.serve
+        from hermes_agent.tools.mcp import serve as mcp_serve
         sessions_dir = tmp_path / "sessions"
         sessions_dir.mkdir()
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)

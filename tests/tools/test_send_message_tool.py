@@ -1376,7 +1376,7 @@ class TestSendDiscordForumMedia:
 
     def test_forum_with_media_uses_multipart(self, tmp_path, monkeypatch):
         """Forum + media → single multipart POST to /threads carrying the starter + files."""
-        from hermes_agent.tools import send_message_tool as smt
+        from hermes_agent.tools import send_message as smt
 
         img = tmp_path / "photo.png"
         img.write_bytes(b"\x89PNGbytes")
@@ -1478,7 +1478,7 @@ class TestForumProbeCache:
     """_DISCORD_CHANNEL_TYPE_PROBE_CACHE memoizes forum detection results."""
 
     def setup_method(self):
-        from hermes_agent.tools import send_message_tool as smt
+        from hermes_agent.tools import send_message as smt
         smt._DISCORD_CHANNEL_TYPE_PROBE_CACHE.clear()
 
     def test_cache_round_trip(self):
@@ -1522,7 +1522,7 @@ class TestForumProbeCache:
         thread_session.post = MagicMock(return_value=thread_resp)
 
         # Two _send_discord calls: first does probe + thread-create; second should skip probe
-        from hermes_agent.tools import send_message_tool as smt
+        from hermes_agent.tools import send_message as smt
 
         sessions_created = []
 

@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from hermes_agent.providers.codex_adapter import _chat_messages_to_responses_input, _normalize_codex_response, _preflight_codex_input_items
 
-import hermes_agent.agent.loop
+from hermes_agent.agent import loop as run_agent
 from hermes_agent.agent.loop import AIAgent
 from hermes_agent.providers.errors import FailoverReason
 from hermes_agent.agent.prompt_builder import DEFAULT_AGENT_IDENTITY

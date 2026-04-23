@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 
 def test_format_banner_version_label_without_git_state():
-    from hermes_agent.cli import banner
+    from hermes_agent.cli.ui import banner
 
     with patch.object(banner, "get_git_banner_state", return_value=None):
         value = banner.format_banner_version_label()
@@ -11,7 +11,7 @@ def test_format_banner_version_label_without_git_state():
 
 
 def test_format_banner_version_label_on_upstream_main():
-    from hermes_agent.cli import banner
+    from hermes_agent.cli.ui import banner
 
     with patch.object(
         banner,
@@ -25,7 +25,7 @@ def test_format_banner_version_label_on_upstream_main():
 
 
 def test_format_banner_version_label_with_carried_commits():
-    from hermes_agent.cli import banner
+    from hermes_agent.cli.ui import banner
 
     with patch.object(
         banner,
@@ -40,7 +40,7 @@ def test_format_banner_version_label_with_carried_commits():
 
 
 def test_get_git_banner_state_reads_origin_and_head(tmp_path):
-    from hermes_agent.cli import banner
+    from hermes_agent.cli.ui import banner
 
     repo_dir = tmp_path / "repo"
     (repo_dir / ".git").mkdir(parents=True)

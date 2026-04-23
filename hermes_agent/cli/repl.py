@@ -5425,7 +5425,7 @@ class HermesCLI:
         """Show Google Gemini Code Assist quota usage for the current OAuth account."""
         try:
             from hermes_agent.providers.google_oauth import get_valid_access_token, GoogleOAuthError, load_credentials
-            from hermes_agent.agent.google_code_assist import retrieve_user_quota, CodeAssistError
+            from hermes_agent.providers.google_code_assist import retrieve_user_quota, CodeAssistError
         except ImportError as exc:
             self._console_print(f"  [red]Gemini modules unavailable: {exc}[/]")
             return

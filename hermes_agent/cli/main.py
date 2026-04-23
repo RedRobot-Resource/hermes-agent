@@ -82,7 +82,7 @@ def _require_tty(command_name: str) -> None:
         sys.exit(1)
 
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 # ---------------------------------------------------------------------------

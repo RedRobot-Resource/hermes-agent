@@ -19,7 +19,7 @@ import pytest
 
 from hermes_agent.agent.context.compressor import SUMMARY_PREFIX
 from hermes_agent.agent.loop import AIAgent
-import hermes_agent.agent.loop
+from hermes_agent.agent import loop as run_agent
 
 
 # ---------------------------------------------------------------------------

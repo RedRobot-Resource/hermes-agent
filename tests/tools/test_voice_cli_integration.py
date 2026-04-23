@@ -500,7 +500,7 @@ class TestEdgeTTSLazyImport:
         reference bare 'edge_tts' module name."""
         import ast as _ast
 
-        with open("tools/tts_tool.py") as f:
+        with open("hermes_agent/tools/media/tts.py") as f:
             tree = _ast.parse(f.read())
 
         for node in _ast.walk(tree):
@@ -538,7 +538,7 @@ class TestStreamingTTSOutputStreamCleanup:
         output_stream even on exception."""
         import ast as _ast
 
-        with open("tools/tts_tool.py") as f:
+        with open("hermes_agent/tools/media/tts.py") as f:
             tree = _ast.parse(f.read())
 
         for node in _ast.walk(tree):
@@ -687,7 +687,7 @@ class TestBrowserToolSignalHandlerRemoved:
     def test_no_signal_handler_registration(self):
         """Source check: browser_tool.py must not call signal.signal()
         for SIGINT or SIGTERM."""
-        with open("tools/browser_tool.py") as f:
+        with open("hermes_agent/tools/browser/tool.py") as f:
             source = f.read()
 
         lines = source.split("\n")

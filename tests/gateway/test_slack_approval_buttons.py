@@ -9,12 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # ---------------------------------------------------------------------------
-# Ensure the repo root is importable
-# ---------------------------------------------------------------------------
-_repo = str(Path(__file__).resolve().parents[2])
-if _repo not in sys.path:
-
-# ---------------------------------------------------------------------------
 # Minimal Slack SDK mock so SlackAdapter can be imported
 # ---------------------------------------------------------------------------
 def _ensure_slack_mock():

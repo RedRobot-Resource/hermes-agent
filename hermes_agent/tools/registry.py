@@ -56,12 +56,27 @@ def _module_registers_tools(module_path: Path) -> bool:
 def discover_builtin_tools(tools_dir: Optional[Path] = None) -> List[str]:
     """Import built-in self-registering tool modules and return their module names."""
     tools_path = Path(tools_dir) if tools_dir is not None else Path(__file__).resolve().parent
+
+    _SKIP_FILES = {"__init__.py", "registry.py", "mcp_tool.py"}
+
+    # Top-level modules
     module_names = [
         f"hermes_agent.tools.{path.stem}"
         for path in sorted(tools_path.glob("*.py"))
-        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+        if path.name not in _SKIP_FILES
         and _module_registers_tools(path)
     ]
+
+    # Subpackage modules (e.g. browser/, files/, media/, skills/)
+    for subdir in sorted(tools_path.iterdir()):
+        if not subdir.is_dir() or not (subdir / "__init__.py").exists():
+            continue
+        pkg_name = subdir.name
+        for path in sorted(subdir.glob("*.py")):
+            if path.name in _SKIP_FILES:
+                continue
+            if _module_registers_tools(path):
+                module_names.append(f"hermes_agent.tools.{pkg_name}.{path.stem}")
 
     imported: List[str] = []
     for mod_name in module_names:

@@ -9,7 +9,7 @@ import sys
 import subprocess
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[3].resolve()
 
 from hermes_agent.cli.auth.auth import AuthError, resolve_provider
 from hermes_agent.cli.ui.colors import Colors, color

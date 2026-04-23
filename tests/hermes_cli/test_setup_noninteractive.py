@@ -146,7 +146,7 @@ class TestNonInteractiveSetup:
 
     def test_returning_user_terminal_menu_choice_dispatches_terminal_section(self, tmp_path):
         """Returning-user menu should map Terminal Backend to the terminal setup, not TTS."""
-        from hermes_agent.cli import setup as setup_mod
+        from hermes_agent.cli import setup_wizard as setup_mod
 
         args = _make_setup_args()
         config = {}
@@ -191,7 +191,7 @@ class TestNonInteractiveSetup:
 
     def test_returning_user_menu_does_not_show_separator_rows(self, tmp_path):
         """Returning-user menu should only show selectable actions."""
-        from hermes_agent.cli import setup as setup_mod
+        from hermes_agent.cli import setup_wizard as setup_mod
 
         args = _make_setup_args()
         captured = {}

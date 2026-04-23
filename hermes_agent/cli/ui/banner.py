@@ -136,7 +136,7 @@ def check_for_updates() -> Optional[int]:
 
     # Must be a git repo — fall back to project root for dev installs
     if not (repo_dir / ".git").exists():
-        repo_dir = Path(__file__).parent.parent.resolve()
+        repo_dir = Path(__file__).resolve().parents[3].resolve()
     if not (repo_dir / ".git").exists():
         return None
 
@@ -188,7 +188,7 @@ def _resolve_repo_dir() -> Optional[Path]:
     hermes_home = get_hermes_home()
     repo_dir = hermes_home / "hermes-agent"
     if not (repo_dir / ".git").exists():
-        repo_dir = Path(__file__).parent.parent.resolve()
+        repo_dir = Path(__file__).resolve().parents[3].resolve()
     return repo_dir if (repo_dir / ".git").exists() else None
 
 

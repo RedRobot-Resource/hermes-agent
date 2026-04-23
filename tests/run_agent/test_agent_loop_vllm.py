@@ -31,7 +31,6 @@ import requests
 
 # Ensure repo root is importable
 _repo_root = Path(__file__).resolve().parent.parent.parent
-if str(_repo_root) not in sys.path:
 try:
     from environments.agent_loop import AgentResult, HermesAgentLoop
 except ImportError:

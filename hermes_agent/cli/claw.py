@@ -30,7 +30,7 @@ from hermes_agent.cli.setup_wizard import (
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2].resolve()
 
 _OPENCLAW_SCRIPT = (
     get_optional_skills_dir(PROJECT_ROOT / "optional-skills")

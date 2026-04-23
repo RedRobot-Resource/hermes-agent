@@ -29,7 +29,7 @@ from hermes_agent.utils import base_url_hostname
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2].resolve()
 
 
 # ─── UI Helpers (shared with setup.py) ────────────────────────────────────────

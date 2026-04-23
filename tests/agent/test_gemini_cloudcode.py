@@ -131,7 +131,7 @@ class TestClientCredResolution:
 
     def test_falls_back_to_scrape_when_defaults_wiped(self, tmp_path, monkeypatch):
         """Forks that wipe the shipped defaults should still work with gemini-cli."""
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         monkeypatch.setattr(google_oauth, "_DEFAULT_CLIENT_ID", "")
         monkeypatch.setattr(google_oauth, "_DEFAULT_CLIENT_SECRET", "")
@@ -153,7 +153,7 @@ class TestClientCredResolution:
 
     def test_missing_everything_raises_with_install_hint(self, monkeypatch):
         """When env + defaults + scrape all fail, raise with install instructions."""
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         monkeypatch.setattr(google_oauth, "_DEFAULT_CLIENT_ID", "")
         monkeypatch.setattr(google_oauth, "_DEFAULT_CLIENT_SECRET", "")
@@ -165,13 +165,13 @@ class TestClientCredResolution:
         assert exc_info.value.code == "google_oauth_client_id_missing"
 
     def test_locate_gemini_cli_oauth_js_when_absent(self, monkeypatch):
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         monkeypatch.setattr("shutil.which", lambda _: None)
         assert google_oauth._locate_gemini_cli_oauth_js() is None
 
     def test_scrape_client_credentials_parses_id_and_secret(self, tmp_path, monkeypatch):
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         # Create a fake gemini binary and oauth2.js
         fake_gemini_bin = tmp_path / "bin" / "gemini"
@@ -297,7 +297,7 @@ class TestGetValidAccessToken:
         assert get_valid_access_token() == "cached-token"
 
     def test_refreshes_when_near_expiry(self, monkeypatch):
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         self._save(expires_ms=int((time.time() + 30) * 1000))
         monkeypatch.setattr(
@@ -307,7 +307,7 @@ class TestGetValidAccessToken:
         assert google_oauth.get_valid_access_token() == "refreshed"
 
     def test_invalid_grant_clears_credentials(self, monkeypatch):
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         self._save(expires_ms=int((time.time() - 10) * 1000))
 
@@ -325,7 +325,7 @@ class TestGetValidAccessToken:
         assert google_oauth.load_credentials() is None
 
     def test_preserves_refresh_when_google_omits(self, monkeypatch):
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         self._save(expires_ms=int((time.time() + 30) * 1000), refresh_token="original-rt")
         monkeypatch.setattr(
@@ -386,7 +386,7 @@ class TestHeadlessDetection:
 
 class TestCodeAssistVpcScDetection:
     def test_detects_vpc_sc_in_json(self):
-        from hermes_agent.agent.google_code_assist import _is_vpc_sc_violation
+        from hermes_agent.providers.google_code_assist import _is_vpc_sc_violation
 
         body = json.dumps({
             "error": {
@@ -397,13 +397,13 @@ class TestCodeAssistVpcScDetection:
         assert _is_vpc_sc_violation(body) is True
 
     def test_detects_vpc_sc_in_message(self):
-        from hermes_agent.agent.google_code_assist import _is_vpc_sc_violation
+        from hermes_agent.providers.google_code_assist import _is_vpc_sc_violation
 
         body = '{"error": {"message": "SECURITY_POLICY_VIOLATED"}}'
         assert _is_vpc_sc_violation(body) is True
 
     def test_non_vpc_sc_returns_false(self):
-        from hermes_agent.agent.google_code_assist import _is_vpc_sc_violation
+        from hermes_agent.providers.google_code_assist import _is_vpc_sc_violation
 
         assert _is_vpc_sc_violation('{"error": {"message": "not found"}}') is False
         assert _is_vpc_sc_violation("") is False
@@ -411,7 +411,7 @@ class TestCodeAssistVpcScDetection:
 
 class TestLoadCodeAssist:
     def test_parses_response(self, monkeypatch):
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         fake = {
             "currentTier": {"id": "free-tier"},
@@ -427,7 +427,7 @@ class TestLoadCodeAssist:
         assert "standard-tier" in info.allowed_tiers
 
     def test_vpc_sc_forces_standard_tier(self, monkeypatch):
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         def boom(*a, **kw):
             raise google_code_assist.CodeAssistError(
@@ -443,7 +443,7 @@ class TestLoadCodeAssist:
 
 class TestOnboardUser:
     def test_paid_tier_requires_project_id(self):
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         with pytest.raises(google_code_assist.ProjectIdRequiredError):
             google_code_assist.onboard_user(
@@ -451,7 +451,7 @@ class TestOnboardUser:
             )
 
     def test_free_tier_no_project_required(self, monkeypatch):
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         monkeypatch.setattr(
             google_code_assist, "_post_json",
@@ -462,7 +462,7 @@ class TestOnboardUser:
 
     def test_lro_polling(self, monkeypatch):
         """Simulate a long-running operation that completes on the second poll."""
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         call_count = {"n": 0}
 
@@ -484,7 +484,7 @@ class TestOnboardUser:
 
 class TestRetrieveUserQuota:
     def test_parses_buckets(self, monkeypatch):
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         fake = {
             "buckets": [
@@ -511,24 +511,24 @@ class TestRetrieveUserQuota:
 
 class TestResolveProjectContext:
     def test_configured_shortcircuits(self, monkeypatch):
-        from hermes_agent.agent.google_code_assist import resolve_project_context
+        from hermes_agent.providers.google_code_assist import resolve_project_context
 
         # Should NOT call loadCodeAssist when configured_project_id is set
         def should_not_be_called(*a, **kw):
             raise AssertionError("should short-circuit")
 
         monkeypatch.setattr(
-            "hermes_agent.agent.google_code_assist._post_json", should_not_be_called,
+            "hermes_agent.providers.google_code_assist._post_json", should_not_be_called,
         )
         ctx = resolve_project_context("at", configured_project_id="proj-abc")
         assert ctx.project_id == "proj-abc"
         assert ctx.source == "config"
 
     def test_env_shortcircuits(self, monkeypatch):
-        from hermes_agent.agent.google_code_assist import resolve_project_context
+        from hermes_agent.providers.google_code_assist import resolve_project_context
 
         monkeypatch.setattr(
-            "hermes_agent.agent.google_code_assist._post_json",
+            "hermes_agent.providers.google_code_assist._post_json",
             lambda *a, **kw: (_ for _ in ()).throw(AssertionError("nope")),
         )
         ctx = resolve_project_context("at", env_project_id="env-proj")
@@ -536,7 +536,7 @@ class TestResolveProjectContext:
         assert ctx.source == "env"
 
     def test_discovers_via_load_code_assist(self, monkeypatch):
-        from hermes_agent.agent import google_code_assist
+        from hermes_agent.providers import google_code_assist
 
         monkeypatch.setattr(
             google_code_assist, "_post_json",
@@ -1179,7 +1179,7 @@ class TestGquotaCommand:
 
 class TestRunGeminiOauthLoginPure:
     def test_returns_pool_compatible_dict(self, monkeypatch):
-        from hermes_agent.agent import google_oauth
+        from hermes_agent.providers import google_oauth
 
         def fake_start(**kw):
             return google_oauth.GoogleCredentials(

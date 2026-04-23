@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2].resolve()
 
 from hermes_agent.cli.ui.colors import Colors, color
 

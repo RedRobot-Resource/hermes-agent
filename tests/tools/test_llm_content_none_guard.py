@@ -190,7 +190,7 @@ class TestSourceLinesAreGuarded:
             return f.read()
 
     def test_mixture_of_agents_reference_model_guarded(self):
-        src = self._read_file("tools/mixture_of_agents_tool.py")
+        src = self._read_file("hermes_agent/tools/mixture_of_agents.py")
         # The unguarded pattern should NOT exist
         assert ".message.content.strip()" not in src, (
             "tools/mixture_of_agents_tool.py still has unguarded "
@@ -198,28 +198,28 @@ class TestSourceLinesAreGuarded:
         )
 
     def test_web_tools_guarded(self):
-        src = self._read_file("tools/web_tools.py")
+        src = self._read_file("hermes_agent/tools/web.py")
         assert ".message.content.strip()" not in src, (
             "tools/web_tools.py still has unguarded "
             ".content.strip() — apply `(... or \"\").strip()` guard"
         )
 
     def test_vision_tools_guarded(self):
-        src = self._read_file("tools/vision_tools.py")
+        src = self._read_file("hermes_agent/tools/vision.py")
         assert ".message.content.strip()" not in src, (
             "tools/vision_tools.py still has unguarded "
             ".content.strip() — apply `(... or \"\").strip()` guard"
         )
 
     def test_skills_guard_guarded(self):
-        src = self._read_file("tools/skills_guard.py")
+        src = self._read_file("hermes_agent/tools/skills/guard.py")
         assert ".message.content.strip()" not in src, (
             "tools/skills_guard.py still has unguarded "
             ".content.strip() — apply `(... or \"\").strip()` guard"
         )
 
     def test_session_search_tool_guarded(self):
-        src = self._read_file("tools/session_search_tool.py")
+        src = self._read_file("hermes_agent/tools/session_search.py")
         assert ".message.content.strip()" not in src, (
             "tools/session_search_tool.py still has unguarded "
             ".content.strip() — apply `(... or \"\").strip()` guard"

@@ -1046,7 +1046,7 @@ def _find_agent_browser() -> str:
             return which_result
 
     # Check local node_modules/.bin/ (npm install in repo root)
-    repo_root = Path(__file__).parent.parent
+    repo_root = Path(__file__).resolve().parents[3]
     local_bin = repo_root / "node_modules" / ".bin" / "agent-browser"
     if local_bin.exists():
         _cached_agent_browser = str(local_bin)

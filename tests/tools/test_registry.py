@@ -319,7 +319,7 @@ class TestBuiltinDiscovery:
         }
 
         with patch("hermes_agent.tools.registry.importlib.import_module"):
-            imported = discover_builtin_tools(Path(__file__).resolve().parents[2] / "tools")
+            imported = discover_builtin_tools(Path(__file__).resolve().parents[2] / "hermes_agent" / "tools")
 
         assert set(imported) == expected
 

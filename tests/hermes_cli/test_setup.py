@@ -7,7 +7,7 @@ import pytest
 
 from hermes_agent.cli.auth.auth import get_active_provider
 from hermes_agent.cli.config import load_config, save_config
-from hermes_agent.cli import setup as setup_mod
+from hermes_agent.cli import setup_wizard as setup_mod
 from hermes_agent.cli.setup_wizard import setup_model_provider
 
 
@@ -212,7 +212,7 @@ def test_setup_gateway_in_container_shows_docker_guidance(monkeypatch, capsys):
     monkeypatch.setattr(gateway_mod, "_is_service_running", lambda: False)
 
     # Patch is_container at the import location in setup.py
-    import hermes_agent.constants
+    from hermes_agent import constants as hermes_constants
     monkeypatch.setattr(hermes_constants, "is_container", lambda: True)
 
     setup_mod.setup_gateway({})
@@ -446,7 +446,7 @@ def test_modal_setup_persists_direct_mode_when_user_chooses_their_own_account(tm
 
 
 def test_resolve_hermes_chat_argv_prefers_which(monkeypatch):
-    from hermes_agent.cli import setup as setup_mod
+    from hermes_agent.cli import setup_wizard as setup_mod
 
     monkeypatch.setattr(setup_mod.shutil, "which", lambda name: "/usr/local/bin/hermes" if name == "hermes" else None)
 
@@ -454,7 +454,7 @@ def test_resolve_hermes_chat_argv_prefers_which(monkeypatch):
 
 
 def test_resolve_hermes_chat_argv_falls_back_to_module(monkeypatch):
-    from hermes_agent.cli import setup as setup_mod
+    from hermes_agent.cli import setup_wizard as setup_mod
 
     monkeypatch.setattr(setup_mod.shutil, "which", lambda _name: None)
     monkeypatch.setattr(setup_mod.importlib.util, "find_spec", lambda name: object() if name == "hermes_agent.cli" else None)
@@ -463,7 +463,7 @@ def test_resolve_hermes_chat_argv_falls_back_to_module(monkeypatch):
 
 
 def test_offer_launch_chat_execs_fresh_process(monkeypatch):
-    from hermes_agent.cli import setup as setup_mod
+    from hermes_agent.cli import setup_wizard as setup_mod
 
     monkeypatch.setattr(setup_mod, "prompt_yes_no", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(setup_mod, "_resolve_hermes_chat_argv", lambda: ["/usr/local/bin/hermes", "chat"])
@@ -483,7 +483,7 @@ def test_offer_launch_chat_execs_fresh_process(monkeypatch):
 
 
 def test_offer_launch_chat_manual_fallback_when_unresolvable(monkeypatch, capsys):
-    from hermes_agent.cli import setup as setup_mod
+    from hermes_agent.cli import setup_wizard as setup_mod
 
     monkeypatch.setattr(setup_mod, "prompt_yes_no", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(setup_mod, "_resolve_hermes_chat_argv", lambda: None)

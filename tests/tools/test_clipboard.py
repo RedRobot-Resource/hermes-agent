@@ -206,7 +206,7 @@ class TestMacosOsascript:
 class TestIsWsl:
     def setup_method(self):
         # _is_wsl is now hermes_constants.is_wsl — reset its cache
-        import hermes_agent.constants
+        from hermes_agent import constants as hermes_constants
         hermes_constants._wsl_detected = None
 
     def test_wsl2_detected(self):
@@ -229,7 +229,7 @@ class TestIsWsl:
             assert _is_wsl() is False
 
     def test_result_is_cached(self):
-        import hermes_agent.constants
+        from hermes_agent import constants as hermes_constants
         content = "Linux version 5.15.0 (microsoft-standard-WSL2)"
         with patch("builtins.open", mock_open(read_data=content)) as m:
             assert _is_wsl() is True

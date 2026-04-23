@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[2].resolve()
 
 from hermes_agent.cli import __version__, __release_date__
 from hermes_agent.cli.config import (
@@ -1198,7 +1198,7 @@ def _resolve_provider_status(provider_id: str, status_fn) -> Dict[str, Any]:
         except Exception as e:
             return {"logged_in": False, "error": str(e)}
     try:
-        from hermes_agent.cli import auth as hauth
+        from hermes_agent.cli.auth import auth as hauth
         if provider_id == "nous":
             raw = hauth.get_nous_auth_status()
             return {
@@ -1537,7 +1537,7 @@ async def _start_device_code_flow(provider_id: str) -> Dict[str, Any]:
     then spawns a background poller. Returns the user-facing display fields
     so the UI can render the verification page link + user code.
     """
-    from hermes_agent.cli import auth as hauth
+    from hermes_agent.cli.auth import auth as hauth
     if provider_id == "nous":
         from hermes_agent.cli.auth.auth import _request_device_code, PROVIDER_REGISTRY
         import httpx

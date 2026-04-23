@@ -711,7 +711,7 @@ class TestMatrixModuleImport:
                 "sys.meta_path.insert(0, _Blocker())\n"
                 "for k in list(sys.modules):\n"
                 "    if k.startswith('mautrix'): del sys.modules[k]\n"
-                "from gateway.platforms.matrix import check_matrix_requirements\n"
+                "from hermes_agent.gateway.platforms.matrix import check_matrix_requirements\n"
                 "assert not check_matrix_requirements()\n"
                 "print('OK')\n"
             )],

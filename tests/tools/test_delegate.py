@@ -313,8 +313,7 @@ class TestToolNamePreservation(unittest.TestCase):
         """The process-global _last_resolved_tool_names must be restored
         after a subagent completes so the parent's execute_code sandbox
         generates correct imports."""
-        import hermes_agent.tools.dispatch
-
+        from hermes_agent.tools import dispatch as model_tools
         parent = _make_mock_parent(depth=0)
         original_tools = ["terminal", "read_file", "web_search", "execute_code", "delegate_task"]
         model_tools._last_resolved_tool_names = list(original_tools)
@@ -332,8 +331,7 @@ class TestToolNamePreservation(unittest.TestCase):
 
     def test_global_tool_names_restored_after_child_failure(self):
         """Even when the child agent raises, the global must be restored."""
-        import hermes_agent.tools.dispatch
-
+        from hermes_agent.tools import dispatch as model_tools
         parent = _make_mock_parent(depth=0)
         original_tools = ["terminal", "read_file", "web_search"]
         model_tools._last_resolved_tool_names = list(original_tools)
@@ -379,8 +377,7 @@ class TestToolNamePreservation(unittest.TestCase):
     def test_saved_tool_names_set_on_child_before_run(self):
         """_run_single_child must set _delegate_saved_tool_names on the child
         from model_tools._last_resolved_tool_names before run_conversation."""
-        import hermes_agent.tools.dispatch
-
+        from hermes_agent.tools import dispatch as model_tools
         parent = _make_mock_parent(depth=0)
         expected_tools = ["read_file", "web_search", "execute_code"]
         model_tools._last_resolved_tool_names = list(expected_tools)

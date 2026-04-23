@@ -32,7 +32,14 @@ import sqlite3
 import time
 import uuid
 from typing import Any, Dict, List, Optional
-from aiohttp import web
+try:
+    from aiohttp import web
+
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    AIOHTTP_AVAILABLE = False
+    web = None  # type: ignore[assignment]
+
 from hermes_agent.gateway.config import Platform, PlatformConfig
 from hermes_agent.gateway.platforms.base import (
     BasePlatformAdapter,
@@ -50,6 +57,11 @@ MAX_REQUEST_BYTES = 1_000_000  # 1 MB default limit for POST bodies
 CHAT_COMPLETIONS_SSE_KEEPALIVE_SECONDS = 30.0
 MAX_NORMALIZED_TEXT_LENGTH = 65_536  # 64 KB cap for normalized content parts
 MAX_CONTENT_LIST_SIZE = 1_000  # Max items when content is an array
+
+
+def check_api_server_requirements() -> bool:
+    """Check if API server adapter dependencies are available."""
+    return AIOHTTP_AVAILABLE
 
 
 def _normalize_chat_content(

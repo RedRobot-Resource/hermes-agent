@@ -10,7 +10,7 @@ from unittest.mock import patch
 @pytest.fixture(autouse=True)
 def reset_skin_state():
     """Reset skin engine state between tests."""
-    from hermes_agent.cli import skin_engine
+    from hermes_agent.cli.ui import skin_engine
     skin_engine._active_skin = None
     skin_engine._active_skin_name = "default"
     yield

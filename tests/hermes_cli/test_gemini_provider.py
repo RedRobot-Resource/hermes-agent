@@ -183,7 +183,7 @@ class TestGeminiAgentInit:
     def test_agent_imports_without_error(self):
         """Verify run_agent.py has no SyntaxError (the critical bug)."""
         import importlib
-        import hermes_agent.agent.loop
+        from hermes_agent.agent import loop as run_agent
         importlib.reload(run_agent)
 
     def test_gemini_agent_uses_chat_completions(self, monkeypatch):

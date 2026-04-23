@@ -4,7 +4,7 @@ import os
 import pytest
 
 import hermes_agent.tools.security.approval as approval_module
-import hermes_agent.tools.security.tirith
+from hermes_agent.tools.security import tirith as tirith_security
 
 from hermes_agent.tools.security.approval import (
     check_all_command_guards,
@@ -93,7 +93,7 @@ class TestYoloMode:
             called["value"] = True
             return {"action": "block", "findings": [], "summary": "should never run"}
 
-        monkeypatch.setattr(tools.tirith_security, "check_command_security", fake_check)
+        monkeypatch.setattr(tirith_security, "check_command_security", fake_check)
 
         result = check_all_command_guards("rm -rf /", "local")
         assert result["approved"]

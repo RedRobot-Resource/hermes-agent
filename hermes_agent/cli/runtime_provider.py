@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-from hermes_agent.cli import auth as auth_mod
+from hermes_agent.cli.auth import auth as auth_mod
 from hermes_agent.providers.credential_pool import CredentialPool, PooledCredential, get_custom_provider_pool_key, load_pool
 from hermes_agent.cli.auth.auth import (
     AuthError,

@@ -123,7 +123,7 @@ def _has_agent_browser() -> bool:
 
     agent_browser_bin = shutil.which("agent-browser")
     local_bin = (
-        Path(__file__).parent.parent / "node_modules" / ".bin" / "agent-browser"
+        Path(__file__).resolve().parents[2] / "node_modules" / ".bin" / "agent-browser"
     )
     return bool(agent_browser_bin or local_bin.exists())
 

@@ -293,7 +293,7 @@ class TestBundledBackendAutoLoad:
 
 class TestRegisterImageGenProvider:
     def test_accepts_valid_provider(self, tmp_path, monkeypatch):
-        from hermes_agent.agent import image_gen_registry
+        from hermes_agent.agent.image_gen import registry as image_gen_registry
         from hermes_agent.agent.image_gen.provider import ImageGenProvider
 
         image_gen_registry._reset_for_tests()
@@ -332,7 +332,7 @@ class TestRegisterImageGenProvider:
         image_gen_registry._reset_for_tests()
 
     def test_rejects_non_provider(self, tmp_path, monkeypatch, caplog):
-        from hermes_agent.agent import image_gen_registry
+        from hermes_agent.agent.image_gen import registry as image_gen_registry
 
         image_gen_registry._reset_for_tests()
 

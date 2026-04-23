@@ -7673,7 +7673,7 @@ class GatewayRunner:
         if is_managed():
             return f"✗ {format_managed_message('update Hermes Agent')}"
 
-        project_root = Path(__file__).parent.parent.resolve()
+        project_root = Path(__file__).resolve().parents[2].resolve()
         git_dir = project_root / '.git'
 
         if not git_dir.exists():

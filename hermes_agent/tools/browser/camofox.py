@@ -33,7 +33,7 @@ from typing import Any, Dict, Optional
 import requests
 
 from hermes_agent.cli.config import load_config
-from hermes_agent.tools.browser_camofox_state import get_camofox_identity
+from hermes_agent.tools.browser.camofox_state import get_camofox_identity
 from hermes_agent.tools.registry import tool_error
 
 logger = logging.getLogger(__name__)
