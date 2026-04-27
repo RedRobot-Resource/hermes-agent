@@ -223,7 +223,8 @@ def build_tool_preview(tool_name: str, args: dict, max_len: int | None = None) -
         target = args.get("target", "")
         if action == "add":
             content = _oneline(args.get("content", ""))
-            return f"+{target}: \"{content[:25]}{'...' if len(content) > 25 else ''}\""
+            target_prefix = f"+{target}: " if target else "+"
+            return f"{target_prefix}\"{content[:25]}{'...' if len(content) > 25 else ''}\""
         elif action == "replace":
             old = _oneline(args.get("old_text") or "") or "<missing old_text>"
             return f"~{target}: \"{old[:20]}\""

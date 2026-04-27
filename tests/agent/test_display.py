@@ -82,6 +82,11 @@ class TestBuildToolPreview:
         result = build_tool_preview("memory", {"action": "add", "target": "user", "content": "test note"})
         assert result is not None
         assert "user" in result
+        assert "\n" not in result
+
+    def test_memory_tool_add_without_target_stays_one_line(self):
+        result = build_tool_preview("memory", {"action": "add", "content": "User identifies as a cutie patootie."})
+        assert result == '+"User identifies as a cuti..."'
 
     def test_memory_replace_missing_old_text_marked(self):
         # Avoid empty quotes "" in the preview when old_text is missing/None.
