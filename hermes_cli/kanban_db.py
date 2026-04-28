@@ -2010,6 +2010,11 @@ def _default_spawn(task: Task, workspace: str) -> Optional[int]:
         env["HERMES_TENANT"] = task.tenant
     env["HERMES_KANBAN_TASK"] = task.id
     env["HERMES_KANBAN_WORKSPACE"] = workspace
+    # HERMES_PROFILE is the author the kanban_comment tool defaults to.
+    # `hermes -p <assignee>` activates the profile, but the env var is
+    # what the tool reads — set it explicitly here so comments are
+    # attributed correctly regardless of how the child loads config.
+    env["HERMES_PROFILE"] = task.assignee
 
     cmd = [
         "hermes",

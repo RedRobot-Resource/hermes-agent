@@ -22,16 +22,16 @@ You are **one run of one specialist profile working one task.** Read the task, d
 
 ## Step 1 — Read the full context
 
-```bash
-hermes kanban context $HERMES_KANBAN_TASK
+Call the **`kanban_show`** tool. It returns the task's title + body, your prior attempts (if this is a retry), parent task handoffs (summary + metadata), comments, and a pre-formatted `worker_context` string suitable for inclusion verbatim in your reasoning.
+
+```
+kanban_show()                    # defaults to your current task via HERMES_KANBAN_TASK
+kanban_show(task_id="t_abc")     # peek at another task
 ```
 
-That command prints:
-1. Task title + body.
-2. Every comment on the task, in order, with author names.
-3. Completion results of every `done` parent task (upstream context).
+**Read all of it.** The comment thread is the inter-agent protocol — past peers, human clarifications, and blocker resolutions all live there. If a reviewer left feedback or the user answered a blocker, it's in the comments. Prior attempts are the retry lesson: if you're running this task a second time, the first run's summary/error tells you what didn't work.
 
-**Read all of it.** The comment thread is the inter-agent protocol — past peers, human clarifications, and blocker resolutions all live there. If a reviewer left feedback or the user answered a blocker, it's in the comments.
+> **Note:** the `kanban_*` tools are only available to you because you were spawned by the dispatcher (`HERMES_KANBAN_TASK` is set in your env). A normal chat session doesn't have them. For CLI debugging or scripting outside an agent run, use `hermes kanban <verb>` — same kernel, different surface.
 
 ## Step 2 — Work inside the workspace
 
@@ -64,42 +64,54 @@ Any of these should trigger a block:
 - Source that needs human input (paywalled article, 2FA-gated login).
 - Peer profile needs to deliver something first and you can't reach around that.
 
-```bash
-hermes kanban block $HERMES_KANBAN_TASK "need decision: IP vs user_id for rate limit key?"
+```
+kanban_block(reason="need decision: IP vs user_id for rate limit key?")
 ```
 
-`block` also appends your reason as a visible comment. When the user or a peer unblocks and the dispatcher re-spawns you, you'll see the full comment thread including their answer in step 1's context read.
+The block event is visible to humans on the board (dashboard + gateway notifier). When the user or a peer unblocks and the dispatcher re-spawns you, you'll see the full comment thread including their answer in step 1's context read.
 
-## Step 5 — Complete with a crisp, machine-readable result
+## Step 5 — Complete with a structured handoff
 
-```bash
-hermes kanban complete $HERMES_KANBAN_TASK --result "rate_limiter.py implemented; keys on user_id with IP fallback; tests passing"
+```
+kanban_complete(
+    summary="implemented token-bucket rate limiter, keys on user_id with IP fallback, all tests pass",
+    metadata={
+        "changed_files": ["rate_limiter.py", "tests/test_rate_limiter.py"],
+        "tests_run": 14,
+        "decisions": ["user_id primary, IP fallback for unauthenticated"],
+    },
+)
 ```
 
-Rules for the `--result` string:
-- One to three sentences. It's not a report, it's a handoff note.
-- Name concrete artifacts you produced (file paths, URLs, commit SHAs).
-- State any caveats a downstream profile needs to know.
-- **Do not** include secrets, tokens, or raw PII — results are durable in the board DB forever.
+Rules:
 
-Downstream tasks (children linked from this task) will see your `--result` verbatim as part of their parent-result context.
+- **`summary`** is the human-readable 1–3 sentence handoff. It appears in the Run History on the dashboard and is what downstream workers see first. Name concrete artifacts (file paths, URLs, commit SHAs).
+- **`metadata`** is machine-readable facts — changed files, test counts, findings, decisions. Downstream workers can parse it structurally instead of scraping prose.
+- **Do not** include secrets, tokens, or raw PII — run rows are durable in the board DB forever.
+
+Downstream tasks (children linked from this task) will see your `summary` + `metadata` via `build_worker_context` — that's the handoff channel.
 
 ## Step 6 — If follow-up work is obvious, create it. Don't do it.
 
 You are one task. If you notice something else needs doing, create a linked child task for the right profile instead of scope-creeping:
 
-```bash
-hermes kanban create "add concurrent-request test" \
-    --assignee backend-eng \
-    --parent $HERMES_KANBAN_TASK
+```
+kanban_create(
+    title="add concurrent-request test",
+    assignee="backend-eng",
+    parents=[os.environ["HERMES_KANBAN_TASK"]],
+)
 ```
 
 ## Leave comments to talk to peers
 
 If you want to flag something for a reviewer, a future run, or the user — append a comment:
 
-```bash
-hermes kanban comment $HERMES_KANBAN_TASK "note: skipped the sqlite driver path; needs separate task"
+```
+kanban_comment(
+    task_id=os.environ["HERMES_KANBAN_TASK"],
+    body="note: skipped the sqlite driver path; needs separate task",
+)
 ```
 
 Comments are the inter-agent protocol. Direct IPC does not exist; the board is the only channel.
@@ -108,11 +120,11 @@ Comments are the inter-agent protocol. Direct IPC does not exist; the board is t
 
 If your task forks a long-lived subprocess (training run, video encode, web crawl, batch upload), the dispatcher can't tell whether your Python is stuck or deliberately waiting. Call:
 
-```bash
-hermes kanban heartbeat $HERMES_KANBAN_TASK --note "epoch 12/50, loss 0.31"
+```
+kanban_heartbeat(note="epoch 12/50, loss 0.31")
 ```
 
-…every few minutes during the long wait. The note is optional; the signal itself is the point. Heartbeats show up in the event stream so humans reading `hermes kanban watch` can see you're still alive. Skip heartbeats for short tasks — they're noise below a few-minute runtime.
+…every few minutes during the long wait. The note is optional; the signal itself is the point. Heartbeats show up in the event stream so humans reading the dashboard or `hermes kanban watch` can see you're still alive. Skip heartbeats for short tasks — they're noise below a few-minute runtime.
 
 ## Do NOT
 
@@ -121,9 +133,13 @@ hermes kanban heartbeat $HERMES_KANBAN_TASK --note "epoch 12/50, loss 0.31"
 - Do not assign tasks to yourself during your run (you're already running one; create new tasks for follow-ups only).
 - Do not complete a task you didn't actually finish. Block it instead.
 
+## CLI fallback
+
+The `kanban_*` tools are the primary surface, but every operation has a CLI equivalent (`hermes kanban show`, `hermes kanban complete --summary ... --metadata '{...}'`, etc.). Use the tools — they're more ergonomic, always work regardless of terminal backend (Docker/Modal/SSH), and avoid shell-quoting issues. The CLI exists for human operators and scripts.
+
 ## Pitfalls
 
-**The task might already be blocked or reassigned when you start.** Between when the dispatcher claimed and when you actually booted up, circumstances can change. Always read the current state at step 1. If `hermes kanban show` reports the task is blocked or reassigned, stop — don't keep running.
+**The task might already be blocked or reassigned when you start.** Between when the dispatcher claimed and when you actually booted up, circumstances can change. Always read the current state at step 1. If `kanban_show` reports the task is blocked or reassigned, stop — don't keep running.
 
 **The workspace may already have artifacts from a previous run.** Especially for `dir:` and `worktree` workspaces, a previous worker may have written files that are incomplete or stale. Read the comment thread — it usually explains why you're running again.
 

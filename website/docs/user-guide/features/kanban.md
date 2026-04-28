@@ -115,14 +115,38 @@ hermes kanban unblock  t_abc t_def
 hermes kanban block    t_abc "need input" --ids t_def t_hij
 ```
 
-## The worker skill
+## How workers interact with the board
+
+When the dispatcher spawns a worker, it sets `HERMES_KANBAN_TASK` in the child's env. That env var is the gate for a dedicated **kanban toolset** — 7 tools that the normal agent schema never sees:
+
+| Tool | Purpose |
+|---|---|
+| `kanban_show` | Read the current task (title, body, prior attempts, parent handoffs, comments, full `worker_context`). Defaults to the env's task id. |
+| `kanban_complete` | Finish with `summary` + `metadata` structured handoff. |
+| `kanban_block` | Escalate for human input. |
+| `kanban_heartbeat` | Signal liveness during long operations. |
+| `kanban_comment` | Append to the task thread. |
+| `kanban_create` | (Orchestrators) fan out into child tasks. |
+| `kanban_link` | (Orchestrators) add dependency edges after the fact. |
+
+**Why tools and not just shelling to `hermes kanban`?** Three reasons:
+
+1. **Backend portability.** Workers whose terminal tool points at a remote backend (Docker / Modal / Singularity / SSH) would run `hermes kanban complete` inside the container where `hermes` isn't installed and the DB isn't mounted. The kanban tools run in the agent's own Python process and always reach `~/.hermes/kanban.db` regardless of terminal backend.
+2. **No shell-quoting fragility.** Passing `--metadata '{"files": [...]}'` through shlex + argparse is a latent footgun. Structured tool args skip it.
+3. **Better errors.** Tool results are structured JSON the model can reason about, not stderr strings it has to parse.
+
+**Zero schema footprint on normal sessions.** A regular `hermes chat` session has zero `kanban_*` tools in its schema. The `check_fn` on each tool only returns True when `HERMES_KANBAN_TASK` is set, which only happens when the dispatcher spawned this process. No tool bloat for users who never touch kanban.
+
+The `kanban-worker` and `kanban-orchestrator` skills teach the model which tool to call when and in what order.
+
+### The worker skill
 
 Any profile that should be able to work kanban tasks must load the `kanban-worker` skill. It teaches the worker the full lifecycle:
 
-1. On spawn, read `$HERMES_KANBAN_TASK` env var.
-2. Run `hermes kanban context $HERMES_KANBAN_TASK` to read title + body + parent results + full comment thread.
-3. `cd $HERMES_KANBAN_WORKSPACE` and do the work there.
-4. Complete with `hermes kanban complete <id> --result "<summary>"`, or block with `hermes kanban block <id> "<reason>"` if stuck.
+1. On spawn, call `kanban_show()` to read title + body + parent handoffs + prior attempts + full comment thread.
+2. `cd $HERMES_KANBAN_WORKSPACE` and do the work there.
+3. Call `kanban_heartbeat(note="...")` every few minutes during long operations.
+4. Complete with `kanban_complete(summary="...", metadata={...})`, or `kanban_block(reason="...")` if stuck.
 
 Load it with:
 
@@ -130,7 +154,7 @@ Load it with:
 hermes skills install devops/kanban-worker
 ```
 
-## The orchestrator skill
+### The orchestrator skill
 
 A **well-behaved orchestrator does not do the work itself.** It decomposes the user's goal into tasks, links them, assigns each to a specialist, and steps back. The `kanban-orchestrator` skill encodes this: anti-temptation rules, a standard specialist roster (`researcher`, `writer`, `analyst`, `backend-eng`, `reviewer`, `ops`), and a decomposition playbook.
 

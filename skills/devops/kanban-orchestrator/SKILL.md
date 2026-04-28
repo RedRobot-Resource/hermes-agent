@@ -14,6 +14,8 @@ metadata:
 
 Load this skill in an orchestrator profile. An orchestrator's job is to route: read the user's goal, decompose it into well-scoped tasks, assign each to the right specialist profile, link dependencies, and step back. It does NOT do research, writing, coding, or any implementation work itself.
 
+> **Your surface is the `kanban_*` tools.** Because you were spawned with `HERMES_KANBAN_TASK` in your env, you have `kanban_show`, `kanban_create`, `kanban_link`, `kanban_comment`, `kanban_complete`, `kanban_block`, and `kanban_heartbeat` directly in your tool schema. Use them. They work regardless of terminal backend (Docker / Modal / SSH) and skip shell-quoting entirely. The `hermes kanban <verb>` CLI is for humans at a terminal; you're not at a terminal.
+
 ## When to use the board (vs. just doing the work)
 
 Create Kanban tasks when any of these are true:
@@ -72,15 +74,19 @@ T1 [planner]  — meta; this is me
 ### Step 3 — Create tasks, link dependencies
 
 For each leaf-level task:
-```bash
-hermes kanban create "angle: cost analysis" \
-    --assignee researcher \
-    --tenant $HERMES_TENANT
+
+```
+kanban_create(
+    title="angle: cost analysis",
+    assignee="researcher",
+    tenant=os.environ.get("HERMES_TENANT"),
+)
 ```
 
 Repeat per task. Then link them:
-```bash
-hermes kanban link <parent> <child>
+
+```
+kanban_link(parent_id=parent_tid, child_id=child_tid)
 ```
 
 **Do not assign something to yourself.** If the orchestrator shows up as an assignee anywhere, you've made a mistake.
@@ -89,9 +95,10 @@ hermes kanban link <parent> <child>
 
 If you were spawned as a task yourself (e.g. `planner` profile was assigned `T1: "investigate foo"`), mark it done with a summary of what you created:
 
-```bash
-hermes kanban complete $HERMES_KANBAN_TASK \
-    --result "decomposed into T2-T6: 3 research angles, 1 synthesis, 1 brief"
+```
+kanban_complete(
+    summary="decomposed into T2-T6: 3 research angles, 1 synthesis, 1 brief",
+)
 ```
 
 ### Step 5 — Tell the user what you did
@@ -124,11 +131,11 @@ The eight collaboration patterns you can instantiate (load the design spec if un
 User says: *"Analyze whether we should migrate to Postgres. Include a cost analysis and a performance angle."*
 
 Your decomposition:
-1. `hermes kanban create "research: Postgres cost vs current" --assignee researcher`
-2. `hermes kanban create "research: Postgres performance vs current" --assignee researcher`
-3. `hermes kanban create "synthesize migration recommendation" --assignee analyst`
-4. `hermes kanban link <t1> <t3>` ; `hermes kanban link <t2> <t3>`
-5. `hermes kanban create "draft decision memo" --assignee writer --parent <t3>`
+1. `kanban_create(title="research: Postgres cost vs current", assignee="researcher")`
+2. `kanban_create(title="research: Postgres performance vs current", assignee="researcher")`
+3. `kanban_create(title="synthesize migration recommendation", assignee="analyst")`
+4. `kanban_link(parent_id=t1, child_id=t3)` ; `kanban_link(parent_id=t2, child_id=t3)`
+5. `kanban_create(title="draft decision memo", assignee="writer", parents=[t3])`
 6. Report task IDs and expected flow to the user.
 
 ## Pitfalls
@@ -137,4 +144,4 @@ Your decomposition:
 
 **Reassignment vs. new task.** If a reviewer blocks with "needs changes," create a NEW task linked from the reviewer's task — don't re-run the same task with a stern look. The new task is assigned to the original implementer profile.
 
-**Link order matters.** `hermes kanban link <parent> <child>` — parent first. Mixing them up demotes the wrong task to `todo`.
+**Argument order matters.** `kanban_link(parent_id=..., child_id=...)` — parent first. Mixing them up demotes the wrong task to `todo`.
