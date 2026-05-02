@@ -4912,6 +4912,40 @@ class HermesCLI:
 
         flush_tool_summary()
         print()
+
+    def _handle_recap_command(self) -> None:
+        """Show a compact recap of recent activity in this session.
+
+        Inspired by Claude Code's ``/recap`` (v2.1.114, April 2026) — useful
+        when running multiple sessions simultaneously and returning to one
+        after a while. Purely local; no LLM call, no token cost, no cache
+        invalidation.
+        """
+        try:
+            from hermes_cli.session_recap import build_recap
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"  (recap unavailable: {exc})")
+            return
+
+        title = None
+        try:
+            if self._session_db and self.session_id:
+                row = self._session_db.get_session(self.session_id)
+                if row:
+                    title = row.get("title") or None
+        except Exception:
+            title = None
+
+        text = build_recap(
+            self.conversation_history or [],
+            session_title=title,
+            session_id=self.session_id,
+            platform="cli",
+        )
+        print()
+        for line in text.splitlines():
+            print(line)
+        print()
     
     def _notify_session_boundary(self, event_type: str) -> None:
         """Fire a session-boundary plugin hook (on_session_finalize or on_session_reset).
@@ -6364,6 +6398,8 @@ class HermesCLI:
                     pass
         elif canonical == "history":
             self.show_history()
+        elif canonical == "recap":
+            self._handle_recap_command()
         elif canonical == "title":
             parts = cmd_original.split(maxsplit=1)
             if len(parts) > 1:

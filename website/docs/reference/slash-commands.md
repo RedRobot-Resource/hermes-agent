@@ -24,6 +24,7 @@ Type `/` in the CLI to open the autocomplete menu. Built-in commands are case-in
 | `/new` (alias: `/reset`) | Start a new session (fresh session ID + history) |
 | `/clear` | Clear screen and start a new session |
 | `/history` | Show conversation history |
+| `/recap` | Compact summary of recent session activity (turn counts, tools used, files touched, last ask/reply). Purely local; no LLM call or token cost. Works in CLI and on every gateway platform. Inspired by Claude Code's `/recap`. |
 | `/save` | Save the current conversation |
 | `/retry` | Retry the last message (resend to agent) |
 | `/undo` | Remove the last user/assistant exchange |

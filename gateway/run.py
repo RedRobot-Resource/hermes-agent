@@ -4630,6 +4630,9 @@ class GatewayRunner:
             if event.get_command() == "status":
                 return await self._handle_status_command(event)
 
+            if event.get_command() == "recap":
+                return await self._handle_recap_command(event)
+
             # Resolve the command once for all early-intercept checks below.
             from hermes_cli.commands import (
                 ACTIVE_SESSION_BYPASS_COMMANDS as _DEDICATED_HANDLERS,
@@ -5003,6 +5006,9 @@ class GatewayRunner:
 
         if canonical == "status":
             return await self._handle_status_command(event)
+
+        if canonical == "recap":
+            return await self._handle_recap_command(event)
 
         if canonical == "agents":
             return await self._handle_agents_command(event)
@@ -6845,6 +6851,34 @@ class GatewayRunner:
         ])
 
         return "\n".join(lines)
+
+    async def _handle_recap_command(self, event: MessageEvent) -> str:
+        """Handle /recap command — compact summary of recent session activity.
+
+        Inspired by Claude Code's ``/recap`` (v2.1.114, April 2026). Purely
+        local: reads the transcript from SessionStore and builds a text
+        summary with no LLM call. Safe for prompt-cache integrity.
+        """
+        from hermes_cli.session_recap import build_recap
+
+        source = event.source
+        session_entry = self.session_store.get_or_create_session(source)
+        history = self.session_store.load_transcript(session_entry.session_id) or []
+
+        title = None
+        try:
+            if self._session_db:
+                title = self._session_db.get_session_title(session_entry.session_id)
+        except Exception:
+            title = None
+
+        platform_name = source.platform.value if source and source.platform else None
+        return build_recap(
+            history,
+            session_title=title,
+            session_id=session_entry.session_id,
+            platform=platform_name,
+        )
 
     async def _handle_agents_command(self, event: MessageEvent) -> str:
         """Handle /agents command - list active agents and running tasks."""
