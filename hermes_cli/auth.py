@@ -4216,7 +4216,7 @@ def _prompt_model_selection(
             clear_screen=False,
             title=effective_title,
         )
-        idx = menu.show()
+        idx: int | None = menu.show()  # ty:ignore[invalid-assignment] - TerminalMenu.show() is always `int | None` when multi_select is False / not provided.
         from hermes_cli.curses_ui import flush_stdin
         flush_stdin()
         if idx is None:

@@ -3534,7 +3534,7 @@ def _remove_custom_provider(config):
             clear_screen=False,
             title="Select provider to remove:",
         )
-        idx = menu.show()
+        idx: int | None = menu.show()  # ty:ignore[invalid-assignment] - TerminalMenu.show() is always `int | None` when multi_select is False / not provided.
         from hermes_cli.curses_ui import flush_stdin
 
         flush_stdin()
@@ -3620,7 +3620,7 @@ def _model_flow_named_custom(config, provider_info):
                 clear_screen=False,
                 title=f"Select model from {name}:",
             )
-            idx = menu.show()
+            idx: int | None = menu.show()  # ty:ignore[invalid-assignment] - TerminalMenu.show() is always `int | None` when multi_select is False / not provided.
             from hermes_cli.curses_ui import flush_stdin
 
             flush_stdin()
@@ -3796,7 +3796,7 @@ def _prompt_reasoning_effort_selection(efforts, current_effort=""):
             clear_screen=False,
             title="Select reasoning effort:",
         )
-        idx = menu.show()
+        idx: int | None = menu.show()  # ty:ignore[invalid-assignment] - TerminalMenu.show() is always `int | None` when multi_select is False / not provided.
         from hermes_cli.curses_ui import flush_stdin
 
         flush_stdin()
