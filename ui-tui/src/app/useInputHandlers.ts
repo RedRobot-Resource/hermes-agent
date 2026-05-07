@@ -329,6 +329,17 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
           return updateGrid(grid => ({ ...grid, paddingX: cycleAutoNumber(grid.paddingX, 2) }))
         }
 
+        if (ch === 'd') {
+          return patchOverlayState({
+            dialog: {
+              body: ['Dialog overlaid on top of /grid-test.', '', 'Backdrop dims the grid behind.'].join('\n'),
+              hint: 'Esc/q/Enter close',
+              title: 'Overlay primitive',
+              zone: 'center'
+            }
+          })
+        }
+
         if (ch === 'r') {
           return updateGrid(grid => ({
             ...grid,

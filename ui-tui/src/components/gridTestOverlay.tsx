@@ -60,7 +60,7 @@ export function GridTestOverlay({ cols, state, t }: GridTestOverlayProps) {
       <Text color={t.color.muted} wrap="truncate">
         {state.zoomed
           ? 'arrows/hjkl switch cell · Esc/q back · Ctrl+C close'
-          : 'arrows/hjkl move · Enter zoom · +/- cols · [] rows · g gap · p pad · n nest · q close'}
+          : 'arrows/hjkl move · Enter zoom · d dialog · +/- cols · [] rows · g gap · p pad · n nest · q close'}
       </Text>
 
       <Box marginTop={1}>
