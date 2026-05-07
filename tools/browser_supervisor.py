@@ -457,7 +457,57 @@ class CDPSupervisor:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
         return {"ok": True, "dialog": snapshot_copy.to_dict()}
 
-    # ── Supervisor loop internals ────────────────────────────────────────────
+    def dispatch_mouse_click(
+        self,
+        x: int,
+        y: int,
+        button: str = "left",
+        timeout: float = 10.0,
+    ) -> None:
+        """Dispatch a compositor-level click over the supervisor's live WS.
+
+        Uses the supervisor's already-connected WebSocket — zero connection
+        setup cost vs opening a fresh WS per click.  mousePressed and
+        mouseReleased are both sent before awaiting either response
+        (pipelined), following the Playwright Promise.all pattern.
+
+        Raises RuntimeError if the supervisor is inactive or the click fails.
+        """
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            raise RuntimeError("supervisor loop is not running")
+
+        with self._state_lock:
+            if not self._active:
+                raise RuntimeError("supervisor is not active")
+            session_id = self._page_session_id
+
+        async def _do_click() -> None:
+            mouse_params = {"x": x, "y": y, "button": button, "clickCount": 1}
+            # Pipeline both events — send without awaiting press ack.
+            # Browser processes CDP messages in order; if mouseReleased is
+            # acked, mousePressed has already been applied.
+            press_fut = asyncio.ensure_future(
+                self._cdp("Input.dispatchMouseEvent",
+                          {**mouse_params, "type": "mousePressed"},
+                          session_id=session_id, timeout=timeout)
+            )
+            release_fut = asyncio.ensure_future(
+                self._cdp("Input.dispatchMouseEvent",
+                          {**mouse_params, "type": "mouseReleased"},
+                          session_id=session_id, timeout=timeout)
+            )
+            await asyncio.gather(press_fut, release_fut)
+
+        try:
+            fut = asyncio.run_coroutine_threadsafe(_do_click(), loop)
+            fut.result(timeout=timeout + 1)
+        except Exception as exc:
+            raise RuntimeError(
+                f"supervisor mouse click failed: {type(exc).__name__}: {exc}"
+            ) from exc
+
+
 
     def _thread_main(self) -> None:
         """Entry point for the supervisor's dedicated thread."""

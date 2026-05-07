@@ -150,7 +150,7 @@ def run_benchmark(iterations: int = 300, warmup: int = 20) -> None:
     # -----------------------------------------------------------------------
     # 1. Baseline: current-main 3-connection approach
     # -----------------------------------------------------------------------
-    print(f"\n  [1/3] Baseline (current main — 3 separate WS connections per click)")
+    print(f"\n  [1/4] Baseline (current main — 3 separate WS connections per click)")
     print(f"        Warmup {warmup}, then {iterations} iterations...")
 
     base_times, base_err = _bench(
@@ -161,9 +161,9 @@ def run_benchmark(iterations: int = 300, warmup: int = 20) -> None:
     print(f"        Done — {base_err} errors, mean={base_stats['mean_ms']:.2f}ms")
 
     # -----------------------------------------------------------------------
-    # 2. Optimized: single-connection — first-click cost (cold cache)
+    # 2. Optimized: single-connection — cold cache (session resolve included)
     # -----------------------------------------------------------------------
-    print(f"\n  [2/3] Optimized — cold cache (1 WS conn, includes getTargets+attachToTarget)")
+    print(f"\n  [2/4] Optimized — cold cache (1 WS conn, includes getTargets+attachToTarget)")
     print(f"        {iterations} iterations, cache cleared before each...")
 
     def _cold_click():
@@ -171,14 +171,18 @@ def run_benchmark(iterations: int = 300, warmup: int = 20) -> None:
         return bt.browser_click(x=150.0, y=200.0, task_id="bench")
 
     cdp_mod._resolve_cdp_endpoint = lambda: LIGHTPANDA_WS
+    # Temporarily null out supervisor registry so this test isolates path 2
+    import tools.browser_supervisor as sup_mod
+    _orig_registry_get = sup_mod.SUPERVISOR_REGISTRY.get
+    sup_mod.SUPERVISOR_REGISTRY.get = lambda tid: None
     cold_times, cold_err = _bench(_cold_click, warmup=0, n=iterations)
     cold_stats = _stats(cold_times)
     print(f"        Done — {cold_err} errors, mean={cold_stats['mean_ms']:.2f}ms")
 
     # -----------------------------------------------------------------------
-    # 3. Optimized: warm cache (session cached from previous click)
+    # 3. Optimized: warm cache (session cached — skips getTargets+attachToTarget)
     # -----------------------------------------------------------------------
-    print(f"\n  [3/3] Optimized — warm cache (1 WS conn, skips getTargets+attachToTarget)")
+    print(f"\n  [3/4] Optimized — warm cache (1 WS conn, skips getTargets+attachToTarget)")
     print(f"        Warmup {warmup} (fills cache), then {iterations} iterations...")
 
     bt._CDP_SESSION_CACHE.clear()
@@ -186,15 +190,56 @@ def run_benchmark(iterations: int = 300, warmup: int = 20) -> None:
         lambda: bt.browser_click(x=150.0, y=200.0, task_id="bench"),
         warmup, iterations,
     )
+    sup_mod.SUPERVISOR_REGISTRY.get = _orig_registry_get
     cdp_mod._resolve_cdp_endpoint = _orig_resolve
     opt_stats = _stats(opt_times)
     print(f"        Done — {opt_err} errors, mean={opt_stats['mean_ms']:.2f}ms")
 
     # -----------------------------------------------------------------------
-    # 4. agent-browser HTTP IPC reference (what a ref click costs)
+    # 4. Supervisor path: real CDPSupervisor with persistent WS
+    # -----------------------------------------------------------------------
+    print(f"\n  [4/4] Supervisor path (persistent WS — zero per-click connection cost)")
+    print(f"        Starting supervisor → {LIGHTPANDA_WS}...")
+    sup_stats = None
+    sup_err_count = 0
+    try:
+        supervisor = sup_mod.CDPSupervisor.__new__(sup_mod.CDPSupervisor)
+        # minimal init — we only need _loop, _ws, _page_session_id, _state_lock,
+        # _pending_calls, _next_call_id, _active, _stop_requested
+        # Use SUPERVISOR_REGISTRY.get_or_start for a fully initialized supervisor
+        TASK_ID = "bench-supervisor"
+        real_sup = sup_mod.SUPERVISOR_REGISTRY.get_or_start(TASK_ID, LIGHTPANDA_WS)
+        import time as _time
+        # Give supervisor time to connect and attach
+        for _ in range(20):
+            snap = real_sup.snapshot()
+            if snap.active:
+                break
+            _time.sleep(0.1)
+
+        if not real_sup.snapshot().active:
+            print(f"        ⚠  Supervisor did not become active — skipping")
+        else:
+            print(f"        ✓ Supervisor active, warmup {warmup}...")
+            def _sup_click():
+                real_sup.dispatch_mouse_click(150, 200)
+                return json.dumps({"success": True})
+
+            for _ in range(warmup):
+                _sup_click()
+            print(f"        Running {iterations} iterations...")
+            sup_times, sup_err_count = _bench(_sup_click, warmup=0, n=iterations)
+            sup_stats = _stats(sup_times)
+            print(f"        Done — {sup_err_count} errors, mean={sup_stats['mean_ms']:.2f}ms")
+            sup_mod.SUPERVISOR_REGISTRY.stop(TASK_ID)
+    except Exception as e:
+        print(f"        ⚠  Supervisor benchmark failed: {e}")
+
+    # -----------------------------------------------------------------------
+    # Ref baseline
     # -----------------------------------------------------------------------
     if ab_ok:
-        print(f"\n  [ref] agent-browser HTTP IPC (reference for ref-click latency)")
+        print(f"\n  [ref] agent-browser HTTP IPC (ref-click latency baseline)")
         ab_times = []
         for _ in range(warmup):
             urllib.request.urlopen(f"http://127.0.0.1:{AGENT_BROWSER_PORT}/api/sessions", timeout=5).read()
@@ -209,33 +254,33 @@ def run_benchmark(iterations: int = 300, warmup: int = 20) -> None:
     # Results
     # -----------------------------------------------------------------------
     col_w = 9
-    print(f"\n{'─' * 78}")
-    print(f"  {'Approach':<46}  {'Mean':>{col_w}}  {'Median':>{col_w}}  {'Min':>{col_w}}  {'p95':>{col_w}}  {'Max':>{col_w}}")
-    print(f"{'─' * 78}")
-    _row("Baseline  (3 WS connections, sequential)     ", base_stats, col_w)
-    _row("Optimized — cold cache (1 conn + negotiate)  ", cold_stats, col_w)
-    _row("Optimized — warm cache (1 conn, skip resolve)", opt_stats,  col_w)
+    print(f"\n{'─' * 82}")
+    print(f"  {'Approach':<50}  {'Mean':>{col_w}}  {'Median':>{col_w}}  {'Min':>{col_w}}  {'p95':>{col_w}}")
+    print(f"{'─' * 82}")
+    _row("Baseline  (3 WS connections, sequential)         ", base_stats, col_w)
+    _row("Optimized — cold cache (1 conn + negotiate)      ", cold_stats, col_w)
+    _row("Optimized — warm cache (1 conn, skip resolve)    ", opt_stats,  col_w)
+    if sup_stats:
+        _row("Supervisor (persistent WS, zero conn cost)       ", sup_stats,  col_w)
     if ab_ok:
-        _row("Ref-click IPC baseline (1 HTTP req)          ", ab_stats,  col_w)
-    print(f"{'─' * 78}")
+        _row("Ref-click IPC baseline (1 HTTP req)              ", ab_stats,  col_w)
+    print(f"{'─' * 82}")
 
     print(f"\n  Speedups (mean vs baseline):")
-    print(f"    Cold cache:  {base_stats['mean_ms'] / cold_stats['mean_ms']:.2f}x  ({base_stats['mean_ms'] - cold_stats['mean_ms']:.2f} ms saved)")
-    print(f"    Warm cache:  {base_stats['mean_ms'] / opt_stats['mean_ms']:.2f}x  ({base_stats['mean_ms'] - opt_stats['mean_ms']:.2f} ms saved)")
-    saved_by_cache = cold_stats['mean_ms'] - opt_stats['mean_ms']
-    print(f"    Cache saves: {saved_by_cache:.2f} ms/click (Target.getTargets + Target.attachToTarget skipped)")
+    print(f"    Cold cache:   {base_stats['mean_ms'] / cold_stats['mean_ms']:.2f}x  ({base_stats['mean_ms'] - cold_stats['mean_ms']:.2f} ms saved)")
+    print(f"    Warm cache:   {base_stats['mean_ms'] / opt_stats['mean_ms']:.2f}x  ({base_stats['mean_ms'] - opt_stats['mean_ms']:.2f} ms saved)")
+    if sup_stats:
+        print(f"    Supervisor:   {base_stats['mean_ms'] / sup_stats['mean_ms']:.2f}x  ({base_stats['mean_ms'] - sup_stats['mean_ms']:.2f} ms saved)")
+        print(f"    Warm→Supervisor additional gain: {opt_stats['mean_ms'] - sup_stats['mean_ms']:.2f} ms  (WS conn eliminated)")
+    if ab_ok and sup_stats:
+        print(f"    Supervisor vs ref-click: {sup_stats['mean_ms'] / ab_stats['mean_ms']:.1f}x  (+{sup_stats['mean_ms'] - ab_stats['mean_ms']:.2f} ms)")
 
-    if ab_ok:
-        cdp_vs_ref = opt_stats["mean_ms"] / ab_stats["mean_ms"]
-        print(f"\n    Warm-cached CDP vs ref-click: {cdp_vs_ref:.1f}x  (+{opt_stats['mean_ms'] - ab_stats['mean_ms']:.2f} ms)")
-        print(f"    Remaining gap = cost of 1 WS connection open.")
-
-    print(f"\n  Summary of optimizations in this PR:")
-    print(f"    1. Single WS connection   — eliminates 2 TCP+WS handshakes per click")
-    print(f"    2. mouseReleased-only wait — skips 1 RTT (press ack redundant per Playwright)")
-    print(f"    3. Session ID cache       — eliminates getTargets+attachToTarget on repeat clicks")
-    print(f"    4. compression=None       — no compression overhead on small CDP messages")
-    print(f"    (Browser-harness, Playwright, and Puppeteer all use variations of these same patterns)")
+    print(f"\n  Optimization tiers in this PR:")
+    print(f"    1. Single WS connection       — eliminates 2 TCP+WS handshakes")
+    print(f"    2. mouseReleased-only wait     — skips redundant press ack (Playwright)")
+    print(f"    3. Session ID cache            — skips getTargets+attachToTarget")
+    print(f"    4. Supervisor reuse (new)      — eliminates the WS open entirely")
+    print(f"       Active after browser_navigate; falls back to warm-cache path if absent.")
     print()
 
 

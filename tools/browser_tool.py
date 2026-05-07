@@ -2467,18 +2467,35 @@ def _cdp_coordinate_click(
 ) -> str:
     """Compositor-level click at viewport coordinates via CDP Input.dispatchMouseEvent.
 
-    This dispatches mouse events at the browser compositor level — Chrome does
-    its own hit-testing to route the event to the correct renderer process.
-    Works through iframes (same-origin and cross-origin OOPIFs), shadow DOM
-    (open and closed), canvas/WebGL elements, and overlays — anything visible
-    at those coordinates gets clicked.
-
-    Uses a single persistent WebSocket connection for all CDP messages
-    (Target.getTargets + optional attachToTarget + mousePressed + mouseReleased),
-    avoiding the overhead of opening a new connection per call.
-
-    Inspired by browser-harness's ``click_at_xy()`` strategy.
+    Dispatch priority (fastest first):
+    1. **Supervisor path** — if a CDPSupervisor is alive for this task_id, reuse
+       its already-connected WebSocket.  Zero connection setup cost; the supervisor
+       thread owns a persistent WS that self-heals on navigation/crash.
+    2. **Per-click connect path** — open a single WS, resolve session (cached),
+       pipeline mousePressed + mouseReleased, close.
+    3. **agent-browser fallback** — when no CDP endpoint is configured at all.
     """
+    ix, iy = int(round(x)), int(round(y))
+
+    # --- path 1: reuse supervisor's live WS (zero connection overhead) ------
+    try:
+        from tools.browser_supervisor import SUPERVISOR_REGISTRY  # type: ignore[import-not-found]
+        supervisor = SUPERVISOR_REGISTRY.get(task_id)
+        if supervisor is not None:
+            try:
+                supervisor.dispatch_mouse_click(ix, iy, button)
+                return json.dumps({
+                    "success": True,
+                    "clicked_at": {"x": ix, "y": iy},
+                    "method": "cdp_supervisor",
+                }, ensure_ascii=False)
+            except Exception as exc:
+                # Supervisor present but errored — fall through to per-click path
+                pass
+    except ImportError:
+        pass
+
+    # --- path 2: per-click WS connect (with session cache) ------------------
     try:
         from tools.browser_cdp_tool import _run_async, _resolve_cdp_endpoint, _WS_AVAILABLE
     except ImportError:
@@ -2499,8 +2516,6 @@ def _cdp_coordinate_click(
 
     if not endpoint.startswith(("ws://", "wss://")):
         return _coordinate_click_via_agent_browser(x, y, task_id, button)
-
-    ix, iy = int(round(x)), int(round(y))
 
     try:
         _run_async(_cdp_coordinate_click_async(endpoint, ix, iy, button, 10.0))

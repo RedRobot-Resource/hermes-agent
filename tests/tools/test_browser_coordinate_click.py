@@ -557,3 +557,92 @@ class TestSessionCaching:
 
         # Endpoint B must not find endpoint A's session
         assert browser_tool._CDP_SESSION_CACHE.get("ws://endpoint-b/") is None
+
+
+# ---------------------------------------------------------------------------
+# Supervisor path
+# ---------------------------------------------------------------------------
+
+
+class TestSupervisorPath:
+    """When a CDPSupervisor is alive for the task_id, coordinate clicks use its
+    persistent WS connection — zero per-click connection setup cost."""
+
+    def test_supervisor_path_used_when_supervisor_alive(self, monkeypatch):
+        """browser_click delegates to the supervisor when one is registered."""
+        from tools import browser_tool
+
+        clicks = []
+
+        class _FakeSupervisor:
+            def dispatch_mouse_click(self, x, y, button="left", timeout=10.0):
+                clicks.append((x, y, button))
+
+        class _FakeRegistry:
+            def get(self, task_id):
+                return _FakeSupervisor()
+
+        import tools.browser_supervisor as bs_mod
+        monkeypatch.setattr(bs_mod, "SUPERVISOR_REGISTRY", _FakeRegistry())
+
+        result = json.loads(browser_tool.browser_click(x=77.0, y=88.0, task_id="t1"))
+        assert result["success"] is True
+        assert result["method"] == "cdp_supervisor"
+        assert result["clicked_at"] == {"x": 77, "y": 88}
+        assert clicks == [(77, 88, "left")]
+
+    def test_supervisor_error_falls_through_to_per_click(self, monkeypatch, cdp_server):
+        """If dispatch_mouse_click raises, the per-click WS path is used instead."""
+        from tools import browser_tool
+        import tools.browser_supervisor as bs_mod
+        import tools.browser_cdp_tool as cdp_mod
+
+        browser_tool._CDP_SESSION_CACHE.clear()
+        monkeypatch.setattr(cdp_mod, "_resolve_cdp_endpoint", lambda: cdp_server._url)
+
+        class _BrokenSupervisor:
+            def dispatch_mouse_click(self, x, y, button="left", timeout=10.0):
+                raise RuntimeError("supervisor WS disconnected")
+
+        class _BrokenRegistry:
+            def get(self, task_id):
+                return _BrokenSupervisor()
+
+        monkeypatch.setattr(bs_mod, "SUPERVISOR_REGISTRY", _BrokenRegistry())
+
+        cdp_server.on("Target.getTargets", lambda p, s: {
+            "targetInfos": [{"targetId": "p1", "type": "page", "attached": True, "url": "..."}]
+        })
+        cdp_server.on("Target.attachToTarget", lambda p, s: {"sessionId": "s1"})
+        cdp_server.on("Input.dispatchMouseEvent", lambda p, s: {})
+
+        result = json.loads(browser_tool.browser_click(x=10.0, y=20.0, task_id="t2"))
+        assert result["success"] is True
+        # Should have fallen through to per-click path (cdp_compositor, not cdp_supervisor)
+        assert result["method"] == "cdp_compositor"
+
+    def test_no_supervisor_uses_per_click_path(self, monkeypatch, cdp_server):
+        """When SUPERVISOR_REGISTRY.get() returns None, the per-click WS path runs."""
+        from tools import browser_tool
+        import tools.browser_supervisor as bs_mod
+        import tools.browser_cdp_tool as cdp_mod
+
+        browser_tool._CDP_SESSION_CACHE.clear()
+        monkeypatch.setattr(cdp_mod, "_resolve_cdp_endpoint", lambda: cdp_server._url)
+
+        class _EmptyRegistry:
+            def get(self, task_id):
+                return None
+
+        monkeypatch.setattr(bs_mod, "SUPERVISOR_REGISTRY", _EmptyRegistry())
+
+        cdp_server.on("Target.getTargets", lambda p, s: {
+            "targetInfos": [{"targetId": "p1", "type": "page", "attached": True, "url": "..."}]
+        })
+        cdp_server.on("Target.attachToTarget", lambda p, s: {"sessionId": "s1"})
+        cdp_server.on("Input.dispatchMouseEvent", lambda p, s: {})
+
+        result = json.loads(browser_tool.browser_click(x=5.0, y=6.0, task_id="t3"))
+        assert result["success"] is True
+        assert result["method"] == "cdp_compositor"
+
