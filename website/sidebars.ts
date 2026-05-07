@@ -60,6 +60,13 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'category',
+          label: 'Security',
+          items: [
+            'user-guide/features/trust-engine',
+          ],
+        },
+        {
+          type: 'category',
           label: 'Automation',
           items: [
             'user-guide/features/cron',

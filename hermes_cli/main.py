@@ -5239,10 +5239,17 @@ def cmd_cron(args):
 
 
 def cmd_webhook(args):
-    """Webhook subscription management."""
+    """Entry point for 'hermes webhook' command."""
     from hermes_cli.webhook import webhook_command
 
     webhook_command(args)
+
+
+def cmd_trust(args):
+    """Entry point for 'hermes trust' command."""
+    from hermes_cli.trust import trust_command
+
+    trust_command(args)
 
 
 def cmd_slack(args):
@@ -8070,6 +8077,7 @@ def _coalesce_session_name_args(argv: list) -> list:
         "plugins",
         "acp",
         "webhook",
+        "trust",
         "memory",
         "dump",
         "debug",
@@ -9264,6 +9272,53 @@ def main():
     )
 
     webhook_parser.set_defaults(func=cmd_webhook)
+
+    # =========================================================================
+    # trust command — rule-based permission engine
+    # =========================================================================
+    trust_parser = subparsers.add_parser(
+        "trust",
+        help="Manage trust rules — allow/deny/ask tool invocations without prompting",
+        description=(
+            "Trust rules live in ~/.hermes/trust.json and sit BEFORE the yolo bypass. "
+            "A deny rule is an invariant that even --yolo cannot override; an allow rule "
+            "short-circuits the dangerous-command check; an ask rule forces a prompt even "
+            "under yolo.  See 'hermes trust why' to debug a specific invocation."
+        ),
+    )
+    trust_subparsers = trust_parser.add_subparsers(dest="trust_action")
+
+    trust_subparsers.add_parser("list", aliases=["ls"], help="List all rules")
+
+    t_add = trust_subparsers.add_parser("add", help="Add a new rule")
+    t_add.add_argument("--id", default="", help="Rule id (auto-generated if omitted)")
+    t_add.add_argument("--tool", default="*", help="Tool name the rule applies to (or '*')")
+    t_add.add_argument("--pattern", default="*", help="fnmatch glob against the candidate string")
+    t_add.add_argument("--scope", default="everywhere",
+                       help="Path prefix for file tools, or 'everywhere' (default)")
+    t_add.add_argument("--decision", required=True, choices=["allow", "deny", "ask"])
+    t_add.add_argument("--priority", type=int, default=50,
+                       help="Higher priority wins; deny beats allow on ties (default: 50)")
+
+    t_rm = trust_subparsers.add_parser("remove", aliases=["rm"], help="Remove a rule by id")
+    t_rm.add_argument("id", help="Rule id")
+
+    t_show = trust_subparsers.add_parser("show", help="Show a single rule's full body")
+    t_show.add_argument("id", help="Rule id")
+
+    t_why = trust_subparsers.add_parser(
+        "why", help="Explain what would happen for a given (tool, command) pair"
+    )
+    t_why.add_argument("--tool", default="terminal", help="Tool name (default: terminal)")
+    t_why.add_argument("--cmd", required=True, help="Candidate string (shell command, file path, ...)")
+
+    t_init = trust_subparsers.add_parser(
+        "init", help="Seed a sensible starter bundle (git status / ls / file_read)"
+    )
+    t_init.add_argument("--force", action="store_true",
+                       help="Overwrite an existing trust.json")
+
+    trust_parser.set_defaults(func=cmd_trust)
 
     # =========================================================================
     # kanban command — multi-profile collaboration board

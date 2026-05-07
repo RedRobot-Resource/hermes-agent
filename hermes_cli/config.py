@@ -1187,6 +1187,14 @@ DEFAULT_CONFIG = {
         "mode": "manual",
         "timeout": 60,
         "cron_mode": "deny",
+        # Trust engine threshold — how much risk should auto-approve when
+        # no rule in trust.json matches.  Levels:
+        #   none   — prompt on every flagged command
+        #   low    — auto-allow low-risk only (default)
+        #   medium — auto-allow low + medium
+        #   high   — auto-allow everything (equivalent to yolo-except-hardline)
+        # Deny rules in trust.json always beat this threshold.
+        "auto_approve_up_to": "low",
         # When true, /reload-mcp asks the user to confirm before rebuilding
         # the MCP tool set for the active session.  Reloading invalidates
         # the provider prompt cache (tool schemas are baked into the system

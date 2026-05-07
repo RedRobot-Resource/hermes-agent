@@ -815,9 +815,50 @@ def check_dangerous_command(command: str, env_type: str,
         logger.warning("Hardline block: %s (command: %s)", hardline_desc, command[:200])
         return _hardline_block_result(hardline_desc)
 
+    # Trust engine: rule-based allow/deny/ask evaluated BEFORE yolo.  A deny
+    # rule is a user-expressed invariant ("never let the agent run this, even
+    # under yolo") and must win over yolo.  An allow rule short-circuits the
+    # pattern-based dangerous-command check.  An ask rule forces a prompt
+    # even under yolo.  If no rule matches, the existing flow continues
+    # unchanged.  The engine is opt-in: if ~/.hermes/trust.json is absent,
+    # every call returns "no_match" and we fall through immediately.
+    try:
+        from tools.trust import evaluate_trust
+
+        trust_decision = evaluate_trust(tool="terminal", candidate=command)
+    except Exception as _trust_exc:
+        logger.debug("Trust engine disabled: %s", _trust_exc)
+        trust_decision = None
+
+    if trust_decision is not None:
+        if trust_decision.decision == "deny":
+            logger.warning(
+                "Trust rule %s blocked command: %s",
+                trust_decision.rule_id, command[:200],
+            )
+            return {
+                "approved": False,
+                "message": (
+                    f"BLOCKED by trust rule '{trust_decision.rule_id}': "
+                    f"this command is explicitly denied in trust.json."
+                ),
+            }
+        if trust_decision.decision == "allow":
+            # Allow rule bypasses the dangerous-pattern check entirely.
+            # (Hardline floor above still applies — that's the only thing
+            # that cannot be overridden.)
+            return {"approved": True, "message": None}
+        # "ask" falls through and forces prompting: we skip the yolo
+        # bypass below by remembering the trust-initiated ask.
+        _trust_forced_ask = trust_decision.decision == "ask"
+    else:
+        _trust_forced_ask = False
+
     # --yolo: bypass all approval prompts. Gateway /yolo is session-scoped;
     # CLI --yolo remains process-scoped via the env var for local use.
-    if is_truthy_value(os.getenv("HERMES_YOLO_MODE")) or is_current_session_yolo_enabled():
+    if not _trust_forced_ask and (
+        is_truthy_value(os.getenv("HERMES_YOLO_MODE")) or is_current_session_yolo_enabled()
+    ):
         return {"approved": True, "message": None}
 
     is_dangerous, pattern_key, description = detect_dangerous_command(command)
