@@ -7252,6 +7252,8 @@ class HermesCLI:
                 _cprint(f"  No agent running; queued as next turn: {payload[:80]}{'...' if len(payload) > 80 else ''}")
         elif canonical == "goal":
             self._handle_goal_command(cmd_original)
+        elif canonical == "subgoal":
+            self._handle_subgoal_command(cmd_original)
         elif canonical == "skin":
             self._handle_skin_command(cmd_original)
         elif canonical == "voice":
@@ -7837,36 +7839,153 @@ class HermesCLI:
 
         _cprint(f"  ⊙ Goal set ({state.max_turns}-turn budget): {state.goal}")
         _cprint(
-            f"  {_DIM}After each turn, a judge model will check if the goal is done. "
-            f"Hermes keeps working until it is, you pause/clear it, or the budget is "
-            f"exhausted. Use /goal status, /goal pause, /goal resume, /goal clear.{_RST}"
+            f"  {_DIM}The agent will propose a checklist on the next turn, "
+            f"then mark items completed as it works. The loop continues "
+            f"until every item is in a terminal status, you pause/clear it, "
+            f"or the budget is exhausted. Use /goal status / pause / resume / "
+            f"clear, and /subgoal to view or override the checklist.{_RST}"
         )
-        # Kick the loop off immediately so the user doesn't have to send a
-        # separate message after setting the goal.
+        # Kick the loop off immediately with the decompose prompt so the
+        # agent's first turn proposes a checklist via goal_checklist().
         try:
-            self._pending_input.put(state.goal)
+            kickoff_prompt = mgr.next_continuation_prompt() or state.goal
+            self._pending_input.put(kickoff_prompt)
         except Exception:
             pass
 
+    def _handle_subgoal_command(self, cmd: str) -> None:
+        """Dispatch /subgoal subcommands.
+
+        Forms:
+          /subgoal                              show the checklist
+          /subgoal <text>                       append a user item
+          /subgoal complete <n>                 user marks item n completed
+          /subgoal impossible <n>               user marks item n impossible
+          /subgoal undo <n>                     user reverts n to pending
+          /subgoal challenge <n>                push back on agent's claim
+          /subgoal remove <n>                   delete item n
+          /subgoal clear                        wipe (agent re-decomposes)
+        """
+        parts = (cmd or "").strip().split(None, 2)
+        arg = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
+
+        mgr = self._get_goal_manager()
+        if mgr is None:
+            _cprint(f"  {_DIM}Goals unavailable (no active session).{_RST}")
+            return
+
+        if not mgr.has_goal():
+            _cprint(f"  {_DIM}No active goal. Set one with /goal <text>.{_RST}")
+            return
+
+        if not arg:
+            _cprint(f"  {mgr.status_line()}")
+            _cprint(f"  {mgr.render_checklist()}")
+            return
+
+        tokens = arg.split(None, 1)
+        verb = tokens[0].lower()
+        rest = tokens[1].strip() if len(tokens) > 1 else ""
+
+        action_status_map = {
+            "complete": "completed",
+            "completed": "completed",
+            "done": "completed",
+            "impossible": "impossible",
+            "imp": "impossible",
+            "skip": "impossible",
+            "undo": "pending",
+            "pending": "pending",
+            "reset": "pending",
+        }
+        if verb in action_status_map:
+            if not rest:
+                _cprint(f"  Usage: /subgoal {verb} <n>")
+                return
+            try:
+                idx = int(rest.split()[0])
+            except ValueError:
+                _cprint(f"  /subgoal {verb}: <n> must be an integer (1-based index).")
+                return
+            try:
+                item = mgr.mark_subgoal(idx, action_status_map[verb])
+            except (IndexError, ValueError, RuntimeError) as exc:
+                _cprint(f"  /subgoal {verb}: {exc}")
+                return
+            _cprint(f"  ✓ Item {idx} → {item.status}: {item.text}")
+            return
+
+        if verb == "challenge":
+            if not rest:
+                _cprint("  Usage: /subgoal challenge <n>")
+                return
+            try:
+                idx = int(rest.split()[0])
+            except ValueError:
+                _cprint("  /subgoal challenge: <n> must be an integer (1-based index).")
+                return
+            try:
+                item = mgr.challenge_subgoal(idx)
+            except (IndexError, ValueError, RuntimeError) as exc:
+                _cprint(f"  /subgoal challenge: {exc}")
+                return
+            _cprint(
+                f"  ⚡ Item {idx} challenged → flipped back to pending. "
+                f"Agent will revisit on the next turn: {item.text}"
+            )
+            return
+
+        if verb == "remove":
+            if not rest:
+                _cprint("  Usage: /subgoal remove <n>")
+                return
+            try:
+                idx = int(rest.split()[0])
+            except ValueError:
+                _cprint("  /subgoal remove: <n> must be an integer (1-based index).")
+                return
+            try:
+                removed = mgr.remove_subgoal(idx)
+            except (IndexError, RuntimeError) as exc:
+                _cprint(f"  /subgoal remove: {exc}")
+                return
+            _cprint(f"  ✓ Removed item {idx}: {removed.text}")
+            return
+
+        if verb == "clear":
+            mgr.clear_checklist()
+            _cprint(
+                "  ✓ Checklist cleared. The agent will propose a new one on the next turn."
+            )
+            return
+
+        # Otherwise — append `arg` as a new user-authored checklist item.
+        try:
+            item = mgr.add_subgoal(arg)
+        except (ValueError, RuntimeError) as exc:
+            _cprint(f"  /subgoal: {exc}")
+            return
+        idx = len(mgr.state.checklist) if mgr.state else 0
+        _cprint(f"  ✓ Added subgoal {idx}: {item.text}")
+
     def _maybe_continue_goal_after_turn(self) -> None:
-        """Hook run after every CLI turn. Judges + maybe re-queues.
+        """Hook run after every CLI turn. Decides whether to re-queue.
 
         Safe to call when no goal is set — returns quickly.
 
         Preemption is automatic: if a real user message is already in
-        ``_pending_input`` we skip judging (the user's new input takes
-        priority and we'll re-judge after that turn). If judge says done,
-        mark it done and tell the user. If judge says continue and we're
-        under budget, push the continuation prompt onto the queue.
+        ``_pending_input`` we skip the continuation (the user's new
+        input takes priority).
 
         Interrupt handling: if the turn was user-cancelled (Ctrl+C), we
-        AUTO-PAUSE the goal instead of judging + re-queuing. Otherwise
-        Ctrl+C feels like it did nothing — the judge runs on whatever
-        partial output landed, almost always says "continue", and the
-        loop keeps going. Auto-pause keeps the goal recoverable via
-        ``/goal resume`` once the user has sorted out what they want.
-        The empty-response skip mirrors the gateway guard at
-        ``_handle_message`` in ``gateway/run.py``.
+        AUTO-PAUSE the goal so the loop doesn't immediately re-queue
+        another turn the user just cancelled. Pausing keeps the goal
+        recoverable via ``/goal resume``.
+
+        Termination is now agent-owned: the agent flips checklist items
+        via the ``goal_checklist`` model tool. ``evaluate_after_turn``
+        just inspects state — no aux-model judge, no JSON parsing, no
+        snippet extraction.
         """
         mgr = self._get_goal_manager()
         if mgr is None or not mgr.is_active():
@@ -7882,10 +8001,8 @@ class HermesCLI:
             pass
 
         # If the turn was user-interrupted (Ctrl+C), auto-pause the goal
-        # and bail. The judge call would almost always return "continue"
-        # on the partial output and immediately re-queue another turn,
-        # which is exactly what the user cancelled. Pausing (rather than
-        # silently skipping) is the observable, recoverable behavior.
+        # and bail. Pausing (rather than silently skipping) is the
+        # observable, recoverable behavior.
         if getattr(self, "_last_turn_interrupted", False):
             try:
                 mgr.pause(reason="user-interrupted (Ctrl+C)")
@@ -7897,35 +8014,7 @@ class HermesCLI:
             )
             return
 
-        # Extract the agent's final response for this turn.
-        last_response = ""
-        try:
-            hist = self.conversation_history or []
-            for msg in reversed(hist):
-                if msg.get("role") == "assistant":
-                    content = msg.get("content", "")
-                    if isinstance(content, list):
-                        # Multimodal content — flatten text parts.
-                        parts = [
-                            p.get("text", "")
-                            for p in content
-                            if isinstance(p, dict) and p.get("type") in ("text", "output_text")
-                        ]
-                        last_response = "\n".join(t for t in parts if t)
-                    else:
-                        last_response = str(content or "")
-                    break
-        except Exception:
-            last_response = ""
-
-        # Skip judging on empty/whitespace-only responses. These are almost
-        # always transient failures (API error, empty stream) where the
-        # judge would say "continue" and trip the consecutive-parse-failures
-        # backstop unnecessarily. Mirrors the gateway guard.
-        if not last_response.strip():
-            return
-
-        decision = mgr.evaluate_after_turn(last_response, user_initiated=True)
+        decision = mgr.evaluate_after_turn(user_initiated=True)
         msg = decision.get("message") or ""
         if msg:
             _cprint(f"  {msg}")

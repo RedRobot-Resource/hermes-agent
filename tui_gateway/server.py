@@ -3249,7 +3249,6 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                         )
                         if goal_mgr.is_active():
                             decision = goal_mgr.evaluate_after_turn(
-                                raw,
                                 user_initiated=True,
                             )
                             verdict_msg = decision.get("message") or ""

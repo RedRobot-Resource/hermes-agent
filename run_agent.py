@@ -10089,6 +10089,24 @@ class AIAgent:
                     parent_session_id=old_session_id,
                 )
                 self._session_db_created = True
+                # Forward any standing /goal state from the parent session
+                # to the continuation session so the goal loop survives
+                # auto-compression. Without this, _get_goal_manager()
+                # rebinds for the new session_id, load_goal() returns None,
+                # is_active() flips to False, and the loop silently dies.
+                # State is stored under "goal:<sid>" in state_meta.
+                try:
+                    _goal_blob = self._session_db.get_meta(f"goal:{old_session_id}")
+                    if _goal_blob:
+                        self._session_db.set_meta(
+                            f"goal:{self.session_id}", _goal_blob
+                        )
+                        logger.info(
+                            "goal: forwarded standing goal from %s → %s on compression",
+                            old_session_id, self.session_id,
+                        )
+                except Exception as exc:
+                    logger.debug("goal forward on compression failed: %s", exc)
                 # Auto-number the title for the continuation session
                 if old_title:
                     try:
@@ -10282,6 +10300,23 @@ class AIAgent:
                 todos=function_args.get("todos"),
                 merge=function_args.get("merge", False),
                 store=self._todo_store,
+            )
+        elif function_name == "goal_checklist":
+            from tools.goal_checklist_tool import goal_checklist_tool as _gc_tool
+            # Pull max_turns from config if available so a fresh
+            # GoalManager respects user budget settings.
+            try:
+                from hermes_cli.config import load_config
+                _cfg = load_config() or {}
+                _goals_cfg = _cfg.get("goals") or {}
+                _gc_max_turns = int(_goals_cfg.get("max_turns", 20) or 20)
+            except Exception:
+                _gc_max_turns = 20
+            return _gc_tool(
+                items=function_args.get("items"),
+                mark=function_args.get("mark"),
+                session_id=self.session_id,
+                default_max_turns=_gc_max_turns,
             )
         elif function_name == "session_search":
             session_db = self._get_session_db_for_recall()
@@ -10908,6 +10943,24 @@ class AIAgent:
                 tool_duration = time.time() - tool_start_time
                 if self._should_emit_quiet_tool_messages():
                     self._vprint(f"  {_get_cute_tool_message_impl('todo', function_args, tool_duration, result=function_result)}")
+            elif function_name == "goal_checklist":
+                from tools.goal_checklist_tool import goal_checklist_tool as _gc_tool
+                try:
+                    from hermes_cli.config import load_config
+                    _cfg = load_config() or {}
+                    _goals_cfg = _cfg.get("goals") or {}
+                    _gc_max_turns = int(_goals_cfg.get("max_turns", 20) or 20)
+                except Exception:
+                    _gc_max_turns = 20
+                function_result = _gc_tool(
+                    items=function_args.get("items"),
+                    mark=function_args.get("mark"),
+                    session_id=self.session_id,
+                    default_max_turns=_gc_max_turns,
+                )
+                tool_duration = time.time() - tool_start_time
+                if self._should_emit_quiet_tool_messages():
+                    self._vprint(f"  {_get_cute_tool_message_impl('goal_checklist', function_args, tool_duration, result=function_result)}")
             elif function_name == "session_search":
                 session_db = self._get_session_db_for_recall()
                 if not session_db:

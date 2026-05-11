@@ -6083,6 +6083,12 @@ class GatewayRunner:
                     return await self._handle_goal_command(event)
                 return "Agent is running — use /goal status / pause / clear mid-run, or /stop before setting a new goal."
 
+            # /subgoal is safe mid-run — it only modifies the active goal's
+            # checklist, which the agent reads from at turn boundaries via
+            # the goal_checklist tool. There is no race with the running turn.
+            if _cmd_def_inner and _cmd_def_inner.name == "subgoal":
+                return await self._handle_subgoal_command(event)
+
             # Session-level toggles that are safe to run mid-agent —
             # /yolo can unblock a pending approval prompt, /verbose cycles
             # the tool-progress display mode for the ongoing stream.
@@ -6460,6 +6466,9 @@ class GatewayRunner:
 
         if canonical == "goal":
             return await self._handle_goal_command(event)
+
+        if canonical == "subgoal":
+            return await self._handle_subgoal_command(event)
 
         if canonical == "voice":
             return await self._handle_voice_command(event)
@@ -9366,14 +9375,16 @@ class GatewayRunner:
         except ValueError as exc:
             return t("gateway.goal.invalid", error=str(exc))
 
-        # Queue the goal text as an immediate first turn so the agent
-        # starts making progress. The post-turn hook takes over after.
+        # Queue the decompose prompt as an immediate first turn so the
+        # agent's first action is to propose a checklist via the
+        # goal_checklist tool. After that the post-turn hook takes over.
         adapter = self.adapters.get(event.source.platform) if event.source else None
         _quick_key = self._session_key_for_source(event.source) if event.source else None
         if adapter and _quick_key:
             try:
+                kickoff_text = mgr.next_continuation_prompt() or state.goal
                 kickoff_event = MessageEvent(
-                    text=state.goal,
+                    text=kickoff_text,
                     message_type=MessageType.TEXT,
                     source=event.source,
                     message_id=event.message_id,
@@ -9384,6 +9395,80 @@ class GatewayRunner:
                 logger.debug("goal kickoff enqueue failed: %s", exc)
 
         return t("gateway.goal.set", budget=state.max_turns, goal=state.goal)
+
+    async def _handle_subgoal_command(self, event: "MessageEvent") -> str:
+        """Handle /subgoal for gateway platforms (mirror of CLI handler)."""
+        args = (event.get_command_args() or "").strip()
+        mgr, _session_entry = self._get_goal_manager_for_event(event)
+        if mgr is None:
+            return t("gateway.goal.unavailable")
+        if not mgr.has_goal():
+            return "No active goal. Set one with /goal <text>."
+
+        if not args:
+            return f"{mgr.status_line()}\n{mgr.render_checklist()}"
+
+        tokens = args.split(None, 1)
+        verb = tokens[0].lower()
+        rest = tokens[1].strip() if len(tokens) > 1 else ""
+
+        action_status_map = {
+            "complete": "completed", "completed": "completed", "done": "completed",
+            "impossible": "impossible", "imp": "impossible", "skip": "impossible",
+            "undo": "pending", "pending": "pending", "reset": "pending",
+        }
+        if verb in action_status_map:
+            if not rest:
+                return f"Usage: /subgoal {verb} <n>"
+            try:
+                idx = int(rest.split()[0])
+            except ValueError:
+                return f"/subgoal {verb}: <n> must be an integer (1-based index)."
+            try:
+                item = mgr.mark_subgoal(idx, action_status_map[verb])
+            except (IndexError, ValueError, RuntimeError) as exc:
+                return f"/subgoal {verb}: {exc}"
+            return f"✓ Item {idx} → {item.status}: {item.text}"
+
+        if verb == "challenge":
+            if not rest:
+                return "Usage: /subgoal challenge <n>"
+            try:
+                idx = int(rest.split()[0])
+            except ValueError:
+                return "/subgoal challenge: <n> must be an integer (1-based index)."
+            try:
+                item = mgr.challenge_subgoal(idx)
+            except (IndexError, ValueError, RuntimeError) as exc:
+                return f"/subgoal challenge: {exc}"
+            return (
+                f"⚡ Item {idx} challenged → flipped back to pending. "
+                f"Agent will revisit on the next turn: {item.text}"
+            )
+
+        if verb == "remove":
+            if not rest:
+                return "Usage: /subgoal remove <n>"
+            try:
+                idx = int(rest.split()[0])
+            except ValueError:
+                return "/subgoal remove: <n> must be an integer (1-based index)."
+            try:
+                removed = mgr.remove_subgoal(idx)
+            except (IndexError, RuntimeError) as exc:
+                return f"/subgoal remove: {exc}"
+            return f"✓ Removed item {idx}: {removed.text}"
+
+        if verb == "clear":
+            mgr.clear_checklist()
+            return "✓ Checklist cleared. Agent will propose a new one on the next turn."
+
+        try:
+            item = mgr.add_subgoal(args)
+        except (ValueError, RuntimeError) as exc:
+            return f"/subgoal: {exc}"
+        idx = len(mgr.state.checklist) if mgr.state else 0
+        return f"✓ Added subgoal {idx}: {item.text}"
 
     async def _send_goal_status_notice(self, source: Any, message: str) -> None:
         """Send a /goal judge status line back to the originating chat/thread."""
@@ -9480,7 +9565,7 @@ class GatewayRunner:
         if not mgr.is_active():
             return
 
-        decision = mgr.evaluate_after_turn(final_response or "", user_initiated=True)
+        decision = mgr.evaluate_after_turn(user_initiated=True)
         msg = decision.get("message") or ""
 
         # Defer the status line until after the adapter has delivered the
