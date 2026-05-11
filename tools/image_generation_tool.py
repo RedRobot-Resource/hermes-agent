@@ -951,36 +951,50 @@ def _read_configured_image_provider():
 
 
 def _dispatch_to_plugin_provider(prompt: str, aspect_ratio: str):
-    """Route the call to a plugin-registered provider when one is selected.
+    """Route the call to a plugin-registered provider when appropriate.
 
     Returns a JSON string on dispatch, or ``None`` to fall through to the
     built-in FAL path.
 
-    Dispatch only fires when ``image_gen.provider`` is explicitly set AND
-    it does not point to ``fal`` (FAL still lives in-tree in this PR;
-    a later PR ports it into ``plugins/image_gen/fal/``). Any other value
-    that matches a registered plugin provider wins.
+    Dispatch fires when ``image_gen.provider`` is explicitly set to a plugin
+    provider. If the provider is unset and the legacy FAL path is unavailable,
+    we auto-select the first available plugin backend. This keeps fresh installs
+    that have Codex/OpenAI/xAI auth working instead of falling into a missing
+    ``FAL_KEY`` error just because FAL remains the historical default.
     """
     configured = _read_configured_image_provider()
-    if not configured or configured == "fal":
+    if configured == "fal":
         return None
 
-    # Also read configured model so we can pass it to the plugin
+    # Also read configured model so we can pass it to the plugin.
     configured_model = _read_configured_image_model()
 
     try:
         # Import locally so plugin discovery isn't triggered just by
         # importing this module (tests rely on that).
-        from agent.image_gen_registry import get_provider
+        from agent.image_gen_registry import get_provider, list_providers
         from hermes_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
-        provider = get_provider(configured)
+        provider = get_provider(configured) if configured else None
+        if provider is None and not configured and not check_fal_api_key():
+            available = []
+            for candidate in list_providers():
+                try:
+                    if candidate.is_available():
+                        available.append(candidate)
+                except Exception:
+                    continue
+            # Prefer Codex auth when present because it needs no separate API key
+            # and is the most common non-FAL setup for Hermes users.
+            priority = {"openai-codex": 0, "openai": 1, "xai": 2}
+            available.sort(key=lambda p: (priority.get(getattr(p, "name", ""), 99), getattr(p, "name", "")))
+            provider = available[0] if available else None
     except Exception as exc:
         logger.debug("image_gen plugin dispatch skipped: %s", exc)
         return None
 
-    if provider is None:
+    if provider is None and configured:
         try:
             # Long-lived sessions may have discovered plugins before a bundled
             # backend was patched in or before config changed. Retry once with
@@ -991,16 +1005,18 @@ def _dispatch_to_plugin_provider(prompt: str, aspect_ratio: str):
             logger.debug("image_gen plugin force-refresh skipped: %s", exc)
 
     if provider is None:
-        return json.dumps({
-            "success": False,
-            "image": None,
-            "error": (
-                f"image_gen.provider='{configured}' is set but no plugin "
-                f"registered that name. Run `hermes plugins list` to see "
-                f"available image gen backends."
-            ),
-            "error_type": "provider_not_registered",
-        })
+        if configured:
+            return json.dumps({
+                "success": False,
+                "image": None,
+                "error": (
+                    f"image_gen.provider='{configured}' is set but no plugin "
+                    f"registered that name. Run `hermes plugins list` to see "
+                    f"available image gen backends."
+                ),
+                "error_type": "provider_not_registered",
+            })
+        return None
 
     try:
         kwargs = {"prompt": prompt, "aspect_ratio": aspect_ratio}

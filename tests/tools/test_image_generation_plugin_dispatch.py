@@ -15,9 +15,16 @@ def _reset_registry():
 
 
 class _FakeCodexProvider(ImageGenProvider):
+    def __init__(self, *, available: bool = True, name: str = "codex"):
+        self._available = available
+        self._name = name
+
     @property
     def name(self) -> str:
-        return "codex"
+        return self._name
+
+    def is_available(self) -> bool:
+        return self._available
 
     def generate(self, prompt, aspect_ratio="landscape", **kwargs):
         return {
@@ -26,7 +33,7 @@ class _FakeCodexProvider(ImageGenProvider):
             "model": "gpt-5.2-codex",
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "provider": "codex",
+            "provider": self.name,
         }
 
 
@@ -97,3 +104,45 @@ class TestPluginDispatch:
         assert payload["success"] is True
         assert payload["provider"] == "codex"
         assert payload["aspect_ratio"] == "portrait"
+
+    def test_dispatch_auto_uses_available_plugin_when_fal_missing(self, monkeypatch, tmp_path):
+        from tools import image_generation_tool
+        from hermes_cli import plugins as plugins_module
+        from agent import image_gen_registry as registry_module
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        (tmp_path / "config.yaml").write_text("image_gen: {}\n")
+
+        providers = [
+            _FakeCodexProvider(available=False, name="xai"),
+            _FakeCodexProvider(available=True, name="openai-codex"),
+        ]
+
+        monkeypatch.setattr(image_generation_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(image_generation_tool, "check_fal_api_key", lambda: False)
+        monkeypatch.setattr(plugins_module, "_ensure_plugins_discovered", lambda force=False: None)
+        monkeypatch.setattr(registry_module, "get_provider", lambda name: None)
+        monkeypatch.setattr(registry_module, "list_providers", lambda: providers)
+
+        dispatched = image_generation_tool._dispatch_to_plugin_provider("draw working image", "square")
+        payload = json.loads(dispatched)
+
+        assert payload["success"] is True
+        assert payload["provider"] == "openai-codex"
+        assert payload["image"] == "/tmp/codex-test.png"
+
+    def test_dispatch_falls_through_when_fal_available_and_provider_unset(self, monkeypatch, tmp_path):
+        from tools import image_generation_tool
+        from hermes_cli import plugins as plugins_module
+        from agent import image_gen_registry as registry_module
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        (tmp_path / "config.yaml").write_text("image_gen: {}\n")
+
+        monkeypatch.setattr(image_generation_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(image_generation_tool, "check_fal_api_key", lambda: True)
+        monkeypatch.setattr(plugins_module, "_ensure_plugins_discovered", lambda force=False: None)
+        monkeypatch.setattr(registry_module, "get_provider", lambda name: None)
+        monkeypatch.setattr(registry_module, "list_providers", lambda: [_FakeCodexProvider(name="openai-codex")])
+
+        assert image_generation_tool._dispatch_to_plugin_provider("draw cat", "landscape") is None
