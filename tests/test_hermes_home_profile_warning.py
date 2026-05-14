@@ -114,3 +114,26 @@ class TestGetHermesHomeProfileWarning:
 
         assert result == tmp_path / ".hermes"
         assert "HERMES_HOME fallback" not in capsys.readouterr().err
+
+    def test_app_home_name_defaults_to_zeus_root(
+        self, fresh_constants, tmp_path, capsys, monkeypatch
+    ):
+        """Zeus wrapper can select ~/.zeus without setting HERMES_HOME."""
+        monkeypatch.setenv("HERMES_APP_HOME_NAME", "zeus")
+
+        result = fresh_constants.get_hermes_home()
+
+        assert result == tmp_path / ".zeus"
+        assert fresh_constants.get_default_hermes_root() == tmp_path / ".zeus"
+        assert fresh_constants.display_hermes_home() == "~/.zeus"
+        assert "HERMES_HOME fallback" not in capsys.readouterr().err
+
+    def test_explicit_hermes_home_overrides_app_home_name(
+        self, fresh_constants, tmp_path, monkeypatch
+    ):
+        """Explicit HERMES_HOME remains the highest priority for test overrides."""
+        custom_home = tmp_path / "custom-home"
+        monkeypatch.setenv("HERMES_APP_HOME_NAME", "zeus")
+        monkeypatch.setenv("HERMES_HOME", str(custom_home))
+
+        assert fresh_constants.get_hermes_home() == custom_home

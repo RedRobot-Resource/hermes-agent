@@ -11,10 +11,32 @@ from pathlib import Path
 _profile_fallback_warned: bool = False
 
 
+def _default_home_dirname() -> str:
+    """Return the default app home directory name.
+
+    Hermes keeps the historical ``~/.hermes`` default. Branded wrapper
+    entry points can set ``HERMES_APP_HOME_NAME`` before importing Hermes
+    internals to choose an isolated sibling home such as ``~/.zeus`` without
+    forcing ``HERMES_HOME`` and without affecting explicit test overrides.
+    """
+
+    app_name = os.environ.get("HERMES_APP_HOME_NAME", "").strip().lower()
+    if app_name and all(ch.isalnum() or ch in {"-", "_"} for ch in app_name):
+        return f".{app_name}"
+    return ".hermes"
+
+
+def _default_home_path() -> Path:
+    """Return the default home path for the current app wrapper."""
+
+    return Path.home() / _default_home_dirname()
+
+
 def get_hermes_home() -> Path:
     """Return the Hermes home directory (default: ~/.hermes).
 
-    Reads HERMES_HOME env var, falls back to ~/.hermes.
+    Reads HERMES_HOME env var, falls back to ~/.hermes. Branded wrappers may
+    set HERMES_APP_HOME_NAME to choose an isolated default such as ~/.zeus.
     This is the single source of truth — all other copies should import this.
 
     When ``HERMES_HOME`` is unset but an ``active_profile`` file indicates
@@ -39,7 +61,7 @@ def get_hermes_home() -> Path:
             # Inline the default-root resolution from get_default_hermes_root()
             # to stay import-safe (this function is called from module scope
             # in 30+ files; we cannot afford to trigger logging setup here).
-            active_path = (Path.home() / ".hermes" / "active_profile")
+            active_path = (_default_home_path() / "active_profile")
             active = active_path.read_text().strip() if active_path.exists() else ""
         except (UnicodeDecodeError, OSError):
             active = ""
@@ -53,7 +75,7 @@ def get_hermes_home() -> Path:
             import sys
             msg = (
                 f"[HERMES_HOME fallback] HERMES_HOME is unset but active "
-                f"profile is {active!r}. Falling back to ~/.hermes, which "
+                f"profile is {active!r}. Falling back to {display_hermes_home()}, which "
                 f"is the DEFAULT profile — not {active!r}. Any data this "
                 f"process writes will land in the wrong profile. The "
                 f"subprocess spawner should pass HERMES_HOME explicitly "
@@ -65,7 +87,7 @@ def get_hermes_home() -> Path:
             except Exception:
                 pass
 
-    return Path.home() / ".hermes"
+    return _default_home_path()
 
 
 def get_default_hermes_root() -> Path:
@@ -84,7 +106,7 @@ def get_default_hermes_root() -> Path:
 
     Import-safe — no dependencies beyond stdlib.
     """
-    native_home = Path.home() / ".hermes"
+    native_home = _default_home_path()
     env_home = os.environ.get("HERMES_HOME", "")
     if not env_home:
         return native_home

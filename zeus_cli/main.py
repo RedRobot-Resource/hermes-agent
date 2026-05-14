@@ -2,20 +2,20 @@
 """Project Zeus command-line wrapper.
 
 This entry point intentionally delegates to the existing Hermes CLI internals
-instead of renaming packages. Its only isolation behavior is to default
-HERMES_HOME to ~/.zeus when the caller has not explicitly set one.
+instead of renaming packages. Its isolation behavior is to select the Zeus app
+home name before importing Hermes internals, so the shared constants default to
+~/.zeus when HERMES_HOME is not explicitly set.
 """
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 
 def _ensure_zeus_home() -> None:
     """Keep Zeus state separate from the live Hermes home by default."""
 
-    os.environ.setdefault("HERMES_HOME", str(Path.home() / ".zeus"))
+    os.environ.setdefault("HERMES_APP_HOME_NAME", "zeus")
 
 
 def main() -> None:
