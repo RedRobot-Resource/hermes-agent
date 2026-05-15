@@ -11,6 +11,7 @@ because its dispatch is tightly coupled to module-level ``cmd_*`` functions.
 """
 
 import argparse
+import os
 
 
 # `--profile` / `-p` is consumed by ``main._apply_profile_override`` before
@@ -79,6 +80,15 @@ For more help on a command:
 """
 
 
+def _command_display_name() -> str:
+    """Return the CLI executable name for argparse help text."""
+
+    app_name = os.environ.get("HERMES_APP_HOME_NAME", "").strip().lower()
+    if app_name and all(ch.isalnum() or ch in {"-", "_"} for ch in app_name):
+        return app_name
+    return "hermes"
+
+
 def build_top_level_parser():
     """Build the top-level parser, the subparsers action, and the ``chat`` subparser.
 
@@ -86,11 +96,13 @@ def build_top_level_parser():
     ``chat_parser.set_defaults(func=cmd_chat)`` and continues registering
     other subparsers via ``subparsers.add_parser(...)``.
     """
+    command_name = _command_display_name()
+    epilogue = _EPILOGUE.replace("    hermes", f"    {command_name}")
     parser = argparse.ArgumentParser(
-        prog="hermes",
+        prog=command_name,
         description="Hermes Agent - AI assistant with tool-calling capabilities",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=_EPILOGUE,
+        epilog=epilogue,
     )
 
     parser.add_argument(
