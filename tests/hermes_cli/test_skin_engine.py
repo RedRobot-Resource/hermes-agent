@@ -66,6 +66,21 @@ class TestBuiltinSkins:
         assert isinstance(wings[0], tuple)
         assert len(wings[0]) == 2
 
+    def test_zeus_skin_keeps_red_robot_branding(self):
+        from hermes_cli.skin_engine import load_skin
+        skin = load_skin("zeus")
+        assert skin.name == "zeus"
+        assert skin.description == "Red Robot Resource theme — Zeus command identity"
+        assert skin.get_color("banner_border") == "#B91C1C"
+        assert skin.get_color("banner_title") == "#F8FAFC"
+        assert skin.get_color("ui_accent") == "#EF4444"
+        assert skin.get_branding("agent_name") == "Zeus"
+        assert skin.get_branding("welcome") == "Welcome to Zeus by Red Robot Resource. Type your message or /help for commands."
+        assert skin.get_branding("response_label") == " ⚡ Zeus "
+        assert skin.get_branding("help_header") == "(⚡) Zeus Commands"
+        assert "ZEUS" in skin.banner_logo
+        assert "Red Robot Resource" in skin.banner_hero
+
     def test_mono_skin_loads(self):
         from hermes_cli.skin_engine import load_skin
         skin = load_skin("mono")
@@ -134,6 +149,7 @@ class TestSkinManagement:
         names = [s["name"] for s in skins]
         assert "default" in names
         assert "ares" in names
+        assert "zeus" in names
         assert "mono" in names
         assert "slate" in names
         assert "daylight" in names

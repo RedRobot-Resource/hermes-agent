@@ -268,6 +268,75 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
 [#DD4A3A]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⚔⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
 [dim #6B1717]⠀⠀⠀⠀⠀⠀⠀⠀war god online⠀⠀⠀⠀⠀⠀⠀⠀[/]""",
     },
+    "zeus": {
+        "name": "zeus",
+        "description": "Red Robot Resource theme — Zeus command identity",
+        "colors": {
+            "banner_border": "#B91C1C",
+            "banner_title": "#F8FAFC",
+            "banner_accent": "#EF4444",
+            "banner_dim": "#7F1D1D",
+            "banner_text": "#FEE2E2",
+            "ui_accent": "#EF4444",
+            "ui_label": "#FCA5A5",
+            "ui_ok": "#22C55E",
+            "ui_error": "#F87171",
+            "ui_warn": "#F59E0B",
+            "prompt": "#F8FAFC",
+            "input_rule": "#B91C1C",
+            "response_border": "#EF4444",
+            "status_bar_bg": "#111827",
+            "status_bar_text": "#FEE2E2",
+            "status_bar_strong": "#F8FAFC",
+            "status_bar_dim": "#991B1B",
+            "status_bar_good": "#22C55E",
+            "status_bar_warn": "#F59E0B",
+            "status_bar_bad": "#EF4444",
+            "status_bar_critical": "#F87171",
+            "session_label": "#FCA5A5",
+            "session_border": "#7F1D1D",
+            "selection_bg": "#450A0A",
+            "completion_menu_bg": "#111827",
+            "completion_menu_current_bg": "#450A0A",
+            "completion_menu_meta_bg": "#1F2937",
+            "completion_menu_meta_current_bg": "#7F1D1D",
+        },
+        "spinner": {
+            "waiting_faces": ["(⚡)", "(R)", "(Z)", "(⚙)", "(▣)"],
+            "thinking_faces": ["(⚡)", "(▣)", "(Z)", "(⚙)", "(R)"],
+            "thinking_verbs": [
+                "charging", "routing command", "checking the forge", "holding the line",
+                "building the next move", "red team reviewing", "wiring the swarm", "locking scope",
+            ],
+            "wings": [
+                ["⟪⚡", "⚡⟫"],
+                ["⟪R", "R⟫"],
+                ["⟪Z", "Z⟫"],
+                ["⟪▣", "▣⟫"],
+            ],
+        },
+        "branding": {
+            "agent_name": "Zeus",
+            "welcome": "Welcome to Zeus by Red Robot Resource. Type your message or /help for commands.",
+            "goodbye": "Zeus standing down. ⚡",
+            "response_label": " ⚡ Zeus ",
+            "prompt_symbol": "⚡",
+            "help_header": "(⚡) Zeus Commands",
+        },
+        "tool_prefix": "▌",
+        "banner_logo": """[bold #F8FAFC]███████╗███████╗██╗   ██╗███████╗[/]
+[#FCA5A5]╚══███╔╝██╔════╝██║   ██║██╔════╝[/]
+[#EF4444]  ███╔╝ █████╗  ██║   ██║███████╗[/]
+[#DC2626] ███╔╝  ██╔══╝  ██║   ██║╚════██║[/]
+[#B91C1C]███████╗███████╗╚██████╔╝███████║[/]
+[#7F1D1D]╚══════╝╚══════╝ ╚═════╝ ╚══════╝[/]
+[dim #450A0A]ZEUS[/]""",
+        "banner_hero": """[#F8FAFC]        ⚡ ZEUS ⚡        [/]
+[#EF4444]   Red Robot Resource   [/]
+[#B91C1C]   command layer online [/]
+[#7F1D1D]   build safely, verify [/]
+[#450A0A]   then ship clean      [/]""",
+    },
     "mono": {
         "name": "mono",
         "description": "Monochrome — clean grayscale",
